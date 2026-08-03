@@ -134,6 +134,22 @@ function is_admin_logged_in()
     return !empty($_SESSION['gb_admin']);
 }
 
+/** 获取首页备案公示 (后台可配置, type=filing) */
+function filing_publicity($limit = 10)
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $cache = [];
+    try {
+        $limit = (int)$limit;
+        $cache = db()->query(
+            "SELECT title, content, link, created_at FROM " . db()->table('publicity') .
+            " WHERE type='filing' AND status=1 ORDER BY sort DESC, id DESC LIMIT $limit"
+        );
+    } catch (Throwable $e) {}
+    return $cache;
+}
+
 /** 密码加密 */
 function hash_password($password)
 {

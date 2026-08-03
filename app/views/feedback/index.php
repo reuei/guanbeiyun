@@ -56,7 +56,7 @@ function doSubmit(e) {
   btn.disabled = true; btn.innerHTML = '<span class="gb-loading gb-loading-sm"></span> 提交中...';
   gbAjax({
     method: 'POST', url: '<?php echo site_url('feedback'); ?>',
-    data: { name: fb_name.value.trim(), contact: fb_contact.value.trim(), title: t.value.trim(), content: c.value.trim(), captcha_verified: 1 },
+    data: { name: fb_name.value.trim(), contact: fb_contact.value.trim(), title: t.value.trim(), content: c.value.trim(), captcha_verified: captchaOk ? 1 : 0 },
     success: function(res) {
       if (res.code === 0) { gbToast.success(res.msg); document.getElementById('feedbackForm').reset(); captchaOk=false; }
     },

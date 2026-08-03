@@ -140,7 +140,16 @@
       if (el._slider) return;
       var opts = {};
       if (el.dataset.image) opts.image = el.dataset.image;
-      if (el.dataset.onSuccess) opts.onSuccess = new Function(el.dataset.onSuccess);
+      // data-on-success 指定全局回调函数名 (如 "onCaptchaOk")
+      // 注意: 不能用 new Function(name) —— 它只引用变量而不调用
+      if (el.dataset.onSuccess) {
+        (function (fnName) {
+          opts.onSuccess = function () {
+            var fn = window[fnName];
+            if (typeof fn === 'function') fn.apply(null, arguments);
+          };
+        })(el.dataset.onSuccess);
+      }
       el._slider = new SliderCaptcha(el, opts);
     });
   });

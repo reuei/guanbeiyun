@@ -86,7 +86,7 @@ function showAudit(r) {
     '<div class="dl-item"><div class="dl-label">证件号</div><div class="dl-value">'+(r.owner_id||'-')+'</div></div>'+
     '<div class="dl-item"><div class="dl-label">联系电话</div><div class="dl-value">'+(r.owner_phone||'-')+'</div></div>';
   document.getElementById('auditIcpNo').value = r.icp_no || '';
-  document.getElementById('auditStatus').value = r.status==1?'1':'1';
+  document.getElementById('auditStatus').value = (r.status==1||r.status==2||r.status==3) ? String(r.status) : '1';
   document.getElementById('auditRemark').value = r.audit_remark || '';
   gbModal.open('auditModal');
 }

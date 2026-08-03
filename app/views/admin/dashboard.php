@@ -23,7 +23,7 @@ $statusMap = [0 => ['审核中', 'badge-pending'], 1 => ['已通过', 'badge-suc
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:18px;" class="hide-mobile-grid">
+<div class="hide-mobile-grid" style="grid-template-columns:1.6fr 1fr;gap:18px;">
   <div class="panel">
     <div class="panel-head"><span class="title"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 最近备案申请</span><a href="<?php echo site_url('admin/filings'); ?>" class="text-sm">查看全部</a></div>
     <div class="table-wrap" style="border:none;">
@@ -81,5 +81,3 @@ $statusMap = [0 => ['审核中', 'badge-pending'], 1 => ['已通过', 'badge-suc
     </div>
   </div>
 </div>
-
-<style>@media (max-width:900px){.hide-mobile-grid{grid-template-columns:1fr !important;}}</style>

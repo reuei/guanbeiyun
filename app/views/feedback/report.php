@@ -66,7 +66,7 @@ function doSubmit(e){
   btn.disabled=true;btn.innerHTML='<span class="gb-loading gb-loading-sm"></span> 提交中...';
   gbAjax({
     method:'POST',url:'<?php echo site_url('report'); ?>',
-    data:{name:rp_name.value.trim(),contact:rp_contact.value.trim(),target_url:u.value.trim(),title:t.value.trim(),content:c.value.trim(),captcha_verified:1},
+    data:{name:rp_name.value.trim(),contact:rp_contact.value.trim(),target_url:u.value.trim(),title:t.value.trim(),content:c.value.trim(),captcha_verified:captchaOk?1:0},
     success:function(res){ if(res.code===0){ gbToast.success(res.msg); document.getElementById('reportForm').reset(); captchaOk=false; } },
     complete:function(){ btn.disabled=false; btn.innerHTML='提交举报'; }
   });

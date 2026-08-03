@@ -22,7 +22,7 @@ $user = current_user();
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;" class="uc-grid">
+<div class="uc-grid" style="grid-template-columns:1.4fr 1fr;gap:18px;">
   <div class="panel">
     <div class="panel-head"><span class="title">快捷操作</span></div>
     <div class="panel-body">
@@ -70,4 +70,3 @@ $user = current_user();
     </div>
   </div>
 </div>
-<style>@media(max-width:900px){.uc-grid{grid-template-columns:1fr !important;}}</style>

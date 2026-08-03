@@ -64,7 +64,7 @@ var curTicket=0;
 function createTicket(e){e.preventDefault();var d={};new FormData(e.target).forEach(function(v,k){d[k]=v;});
   gbAjax({method:'POST',url:'<?php echo site_url('user/ticket/create'); ?>',data:d,success:function(r){if(r.code===0){gbToast.success(r.msg);gbModal.close('ticketModal');setTimeout(function(){location.reload();},800);}}});return false;}
 function showChat(id){curTicket=id;
-  gbAjax({method:'GET',url:'<?php echo site_url('admin/ticket/detail'); ?>?id='+id,success:function(res){
+  gbAjax({method:'GET',url:'<?php echo site_url('user/ticket/detail'); ?>?id='+id,success:function(res){
     if(res.code===0){var html='';(res.data.replies||[]).forEach(function(m){
       var me=m.role==='user';
       html+='<div style="margin-bottom:12px;display:flex;flex-direction:column;align-items:'+(me?'flex-end':'flex-start')+';">'+

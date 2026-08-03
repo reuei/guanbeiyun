@@ -8,8 +8,8 @@ try { $siteName = site_config('site_name') ?: '管备云备案系统'; } catch (
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>管理员登录 - <?php echo e($siteName); ?></title>
-<link rel="stylesheet" href="<?php echo site_url('public/assets/css/theme.css'); ?>">
-<link rel="stylesheet" href="<?php echo site_url('public/assets/css/site.css'); ?>">
+<link rel="stylesheet" href="<?php echo asset('assets/css/theme.css'); ?>">
+<link rel="stylesheet" href="<?php echo asset('assets/css/site.css'); ?>">
 </head>
 <body>
 <div class="auth-wrap">
@@ -52,8 +52,8 @@ try { $siteName = site_config('site_name') ?: '管备云备案系统'; } catch (
     </div>
   </div>
 </div>
-<script src="<?php echo site_url('public/assets/js/app.js'); ?>"></script>
-<script src="<?php echo site_url('public/assets/js/slider-captcha.js'); ?>"></script>
+<script src="<?php echo asset('assets/js/app.js'); ?>"></script>
+<script src="<?php echo asset('assets/js/slider-captcha.js'); ?>"></script>
 <script>
 var captchaOk = false;
 function onCaptchaOk(){ captchaOk = true; }
@@ -72,7 +72,7 @@ function doLogin(e){
   btn.disabled=true;btn.innerHTML='<span class="gb-loading gb-loading-sm"></span> 登录中...';
   gbAjax({
     method:'POST',url:'<?php echo site_url('admin/login'); ?>',
-    data:{username:u.value.trim(),password:p.value,captcha_verified:1},
+    data:{username:u.value.trim(),password:p.value,captcha_verified:captchaOk?1:0},
     success:function(res){
       if(res.code===0){ gbToast.success(res.msg); setTimeout(function(){location.href=res.data.redirect;},600); }
       else { btn.disabled=false; btn.innerHTML='进入后台'; }

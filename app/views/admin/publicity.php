@@ -1,6 +1,7 @@
 <?php /** 首页公示管理 */
 $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 15; $type = $type ?? '';
-$typeMap = ['partner' => '合作方', 'invalid' => '失效/违规'];
+$typeMap = ['partner' => '合作方', 'invalid' => '失效/违规', 'filing' => '备案公示'];
+$tagClass = ['partner' => 'tag-success', 'invalid' => 'tag-danger', 'filing' => 'tag-primary'];
 ?>
 <div class="panel">
   <div class="panel-head">
@@ -20,7 +21,7 @@ $typeMap = ['partner' => '合作方', 'invalid' => '失效/违规'];
         <?php if ($rows): foreach ($rows as $r): ?>
         <tr>
           <td><?php echo $r['id']; ?></td>
-          <td><span class="tag <?php echo $r['type']==='partner'?'tag-success':'tag-danger'; ?>"><?php echo $typeMap[$r['type']] ?? $r['type']; ?></span></td>
+          <td><span class="tag <?php echo $tagClass[$r['type']] ?? 'tag-info'; ?>"><?php echo $typeMap[$r['type']] ?? $r['type']; ?></span></td>
           <td><?php echo e($r['title']); ?></td>
           <td class="text-sm truncate" style="max-width:200px;"><?php echo e(mb_substr($r['content'],0,30)); ?></td>
           <td class="text-sm truncate" style="max-width:160px;"><?php echo $r['link']?e($r['link']):'-'; ?></td>
@@ -45,10 +46,10 @@ $typeMap = ['partner' => '合作方', 'invalid' => '失效/违规'];
     <div class="modal-head"><h3 id="pubTitle">新增公示</h3><span class="icon-btn" onclick="gbModal.close('pubModal')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
     <div class="modal-body">
       <input type="hidden" id="pubId" value="0">
-      <div class="form-group"><label class="form-label">类型 <span class="req">*</span></label><select class="form-control" id="pubType"><option value="partner">合作方公示</option><option value="invalid">失效/违规公示</option></select></div>
-      <div class="form-group"><label class="form-label">标题 <span class="req">*</span></label><input class="form-control" id="pubTitleInput"></div>
-      <div class="form-group"><label class="form-label">内容</label><textarea class="form-control" id="pubContent" rows="3"></textarea></div>
-      <div class="form-group"><label class="form-label">链接</label><input class="form-control" id="pubLink" placeholder="选填"></div>
+      <div class="form-group"><label class="form-label">类型 <span class="req">*</span></label><select class="form-control" id="pubType" onchange="onPubTypeChange()"><option value="partner">合作方公示</option><option value="invalid">失效/违规公示</option><option value="filing">备案公示</option></select></div>
+      <div class="form-group"><label class="form-label" id="pubTitleLabel">标题 <span class="req">*</span></label><input class="form-control" id="pubTitleInput"></div>
+      <div class="form-group"><label class="form-label" id="pubContentLabel">内容</label><textarea class="form-control" id="pubContent" rows="3"></textarea></div>
+      <div class="form-group"><label class="form-label" id="pubLinkLabel">链接</label><input class="form-control" id="pubLink" placeholder="选填"></div>
       <div class="grid-2">
         <div class="form-group"><label class="form-label">状态</label><select class="form-control" id="pubStatus"><option value="1">显示</option><option value="0">隐藏</option></select></div>
         <div class="form-group"><label class="form-label">排序</label><input class="form-control" type="number" id="pubSort" value="0"></div>
@@ -58,8 +59,22 @@ $typeMap = ['partner' => '合作方', 'invalid' => '失效/违规'];
   </div>
 </div>
 <script>
-function addPub(){document.getElementById('pubTitle').textContent='新增公示';document.getElementById('pubId').value=0;document.getElementById('pubType').value='partner';document.getElementById('pubTitleInput').value='';document.getElementById('pubContent').value='';document.getElementById('pubLink').value='';document.getElementById('pubStatus').value=1;document.getElementById('pubSort').value=0;gbModal.open('pubModal');}
-function editPub(r){document.getElementById('pubTitle').textContent='编辑公示';document.getElementById('pubId').value=r.id;document.getElementById('pubType').value=r.type;document.getElementById('pubTitleInput').value=r.title;document.getElementById('pubContent').value=r.content||'';document.getElementById('pubLink').value=r.link||'';document.getElementById('pubStatus').value=r.status;document.getElementById('pubSort').value=r.sort||0;gbModal.open('pubModal');}
+// 备案公示类型字段标签映射
+var PUB_LABELS = {
+  partner: {title:'标题 <span class="req">*</span>', content:'内容', link:'链接'},
+  invalid: {title:'标题 <span class="req">*</span>', content:'内容', link:'链接'},
+  filing:  {title:'网站名称 <span class="req">*</span>', content:'备案信息', link:'网址 (点击跳转)'}
+};
+function onPubTypeChange(){
+  var t = document.getElementById('pubType').value;
+  var L = PUB_LABELS[t] || PUB_LABELS.partner;
+  document.getElementById('pubTitleLabel').innerHTML = L.title;
+  document.getElementById('pubContentLabel').textContent = L.content;
+  document.getElementById('pubLinkLabel').textContent = L.link;
+  document.getElementById('pubLink').placeholder = t==='filing' ? '如 https://example.com' : '选填';
+}
+function addPub(){document.getElementById('pubTitle').textContent='新增公示';document.getElementById('pubId').value=0;document.getElementById('pubType').value='partner';document.getElementById('pubTitleInput').value='';document.getElementById('pubContent').value='';document.getElementById('pubLink').value='';document.getElementById('pubStatus').value=1;document.getElementById('pubSort').value=0;onPubTypeChange();gbModal.open('pubModal');}
+function editPub(r){document.getElementById('pubTitle').textContent='编辑公示';document.getElementById('pubId').value=r.id;document.getElementById('pubType').value=r.type;document.getElementById('pubTitleInput').value=r.title;document.getElementById('pubContent').value=r.content||'';document.getElementById('pubLink').value=r.link||'';document.getElementById('pubStatus').value=r.status;document.getElementById('pubSort').value=r.sort||0;onPubTypeChange();gbModal.open('pubModal');}
 function savePub(){var d={id:document.getElementById('pubId').value,type:document.getElementById('pubType').value,title:document.getElementById('pubTitleInput').value,content:document.getElementById('pubContent').value,link:document.getElementById('pubLink').value,status:document.getElementById('pubStatus').value,sort:document.getElementById('pubSort').value};
   if(!d.title){gbToast.warning('请输入标题');return;}
   gbAjax({method:'POST',url:'<?php echo site_url('admin/publicity/save'); ?>',data:d,success:function(r){if(r.code===0){gbToast.success(r.msg);gbModal.close('pubModal');setTimeout(function(){location.reload();},600);}}});}

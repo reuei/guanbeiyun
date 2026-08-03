@@ -185,28 +185,35 @@
   document.addEventListener('DOMContentLoaded', initSidebar);
 
   /* ---------- 表单实时校验容器 ---------- */
+  // 查找输入框所在的 .form-group 容器 (兼容 input 直接位于 form-group, 或位于 input-group 内)
+  function findFormGroup(input) {
+    return input.closest ? input.closest('.form-group') : input.parentNode;
+  }
   window.gbValidate = {
     // 设置错误
     setError: function (input, msg) {
       input.classList.remove('form-success');
       input.classList.add('error');
-      var err = input.parentNode.querySelector('.form-error');
+      var grp = findFormGroup(input) || input.parentNode;
+      var err = grp.querySelector('.form-error');
       if (!err) {
         err = document.createElement('div');
         err.className = 'form-error';
-        input.parentNode.appendChild(err);
+        grp.appendChild(err);
       }
       err.textContent = msg;
     },
     setSuccess: function (input) {
       input.classList.remove('error');
       input.classList.add('form-success');
-      var err = input.parentNode.querySelector('.form-error');
+      var grp = findFormGroup(input) || input.parentNode;
+      var err = grp.querySelector('.form-error');
       if (err) err.textContent = '';
     },
     clear: function (input) {
       input.classList.remove('error', 'form-success');
-      var err = input.parentNode.querySelector('.form-error');
+      var grp = findFormGroup(input) || input.parentNode;
+      var err = grp.querySelector('.form-error');
       if (err) err.textContent = '';
     }
   };
@@ -280,9 +287,10 @@
     });
   };
 
-  // 公告弹窗关闭
+  // 公告弹窗关闭 (写入 cookie, 服务端 PHP 同步读取, 避免每次刷新重复弹出)
   window.closeAnnounce = function () {
     var m = document.getElementById('announce-modal');
-    if (m) { m.classList.remove('open'); sessionStorage.setItem('gb_announce_closed', '1'); }
+    if (m) { m.classList.remove('open'); }
+    document.cookie = 'gb_announce_closed=1;path=/;max-age=' + (60 * 60 * 24);
   };
 })();

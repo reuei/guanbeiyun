@@ -37,6 +37,7 @@ $router->get('/user/feedback', 'UserController@feedbackList');
 $router->get('/user/tickets', 'UserController@tickets');
 $router->post('/user/ticket/create', 'UserController@createTicket');
 $router->post('/user/ticket/reply', 'UserController@replyTicket');
+$router->get('/user/ticket/detail', 'UserController@ticketDetail');
 $router->get('/user/profile', 'UserController@profile');
 $router->post('/user/profile/update', 'UserController@updateProfile');
 $router->post('/user/avatar/upload', 'UserController@uploadAvatar');

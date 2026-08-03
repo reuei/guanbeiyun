@@ -181,7 +181,7 @@ CREATE TABLE `gb_applications` (
 DROP TABLE IF EXISTS `gb_publicity`;
 CREATE TABLE `gb_publicity` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `type` varchar(20) NOT NULL COMMENT 'partner合作方 invalid失效/恶意',
+  `type` varchar(20) NOT NULL COMMENT 'partner合作方 invalid失效/违规 filing备案公示',
   `title` varchar(200) NOT NULL,
   `content` text,
   `link` varchar(255) DEFAULT NULL,

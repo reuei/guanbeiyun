@@ -75,6 +75,27 @@ $user = current_user();
   <a href="<?php echo site_url('query'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> 备案查询</a>
   <a href="<?php echo site_url('feedback'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 意见反馈</a>
   <a href="<?php echo site_url('report'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> 违法举报</a>
+  <?php $filings = filing_publicity(8); if ($filings): ?>
+  <div class="menu-divider"></div>
+  <div class="menu-filing-list">
+    <div class="menu-filing-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
+      备案公示
+    </div>
+    <?php foreach ($filings as $f): ?>
+    <a class="menu-filing-item" <?php echo !empty($f['link']) ? 'href="' . e($f['link']) . '" target="_blank" rel="noopener"' : 'href="javascript:void(0);"'; ?>>
+      <div class="mf-main">
+        <div class="mf-name"><?php echo e($f['title']); ?></div>
+        <?php if (!empty($f['content']) || !empty($f['link'])): ?>
+        <div class="mf-info"><?php echo e($f['content'] ?: $f['link']); ?></div>
+        <?php endif; ?>
+      </div>
+      <div class="mf-time"><?php echo $f['created_at'] ? e(date('Y-m-d', strtotime($f['created_at']))) : ''; ?></div>
+      <?php if (!empty($f['link'])): ?><svg class="mf-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><?php endif; ?>
+    </a>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <div class="menu-divider"></div>
   <?php if ($user): ?>
   <a href="<?php echo site_url('user'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 用户中心</a>
@@ -152,7 +173,7 @@ $user = current_user();
 </footer>
 
 <!-- 公告弹窗 -->
-<?php if (!empty($site['announcement_enabled']) && !empty($site['announcement_content']) && empty($_SESSION['gb_announce_closed'])): ?>
+<?php if (!empty($site['announcement_enabled']) && !empty($site['announcement_content']) && empty($_COOKIE['gb_announce_closed'])): ?>
 <div class="announce-modal open" id="announce-modal">
   <div class="announce-box">
     <div class="ah"><h3><?php echo e($site['announcement_title'] ?? '系统公告'); ?></h3><div class="close" onclick="closeAnnounce()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div></div>

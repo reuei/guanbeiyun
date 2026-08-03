@@ -146,6 +146,18 @@ class UserController extends Controller
         ok([], '回复成功');
     }
 
+    /** 用户查看自己的工单详情 (仅限本人工单) */
+    public function ticketDetail()
+    {
+        $u = current_user();
+        $id = (int)input('id', 0);
+        $ticket = db()->queryOne("SELECT * FROM " . db()->table('tickets') . " WHERE id = ? AND user_id = ?", [$id, $u['id']]);
+        if (!$ticket) fail('工单不存在');
+        $replies = db()->query("SELECT * FROM " . db()->table('ticket_replies') . " WHERE ticket_id = ? ORDER BY id ASC", [$id]);
+        array_unshift($replies, ['role' => 'user', 'content' => $ticket['title'], 'created_at' => $ticket['created_at']]);
+        ok(['ticket' => $ticket, 'replies' => $replies]);
+    }
+
     /** 个人信息配置 */
     public function profile()
     {
