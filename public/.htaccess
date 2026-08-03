@@ -1,0 +1,28 @@
+# 管备云备案系统 - Apache 重写规则
+# 文档根目录应指向本 public/ 目录
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 处理安装目录 (public/install/)
+    RewriteRule ^install/ - [L]
+
+    # 如果请求的是真实存在的文件或目录, 直接访问
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 其他请求全部交给入口文件
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# 默认入口
+DirectoryIndex index.php
+
+# 安全: 禁止访问敏感文件
+<FilesMatch "\.(sql|md|lock|log)$">
+    Require all denied
+</FilesMatch>
+
+# 字符集
+AddDefaultCharset UTF-8

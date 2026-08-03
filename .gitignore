@@ -1,0 +1,36 @@
+# ===== 管备云备案系统 .gitignore =====
+
+# 敏感配置 (由安装程序生成, 请勿提交)
+config/config.php
+config/install.lock
+
+# 上传文件 (用户头像/二维码/Logo 等)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# 运行时缓存与日志
+runtime/
+*.log
+storage/
+
+# 编辑器 / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 依赖
+vendor/
+node_modules/
+
+# 备份与压缩包
+*.zip
+*.tar.gz
+*.bak
+*.tmp
