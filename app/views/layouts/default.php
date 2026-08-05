@@ -78,27 +78,6 @@ $user = current_user();
   <a href="<?php echo site_url('chat'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 聊天室</a>
   <a href="<?php echo site_url('publicity/filing'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg> 备案公示</a>
   <a href="<?php echo site_url('publicity/invalid'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 失效网站公示</a>
-  <?php $filings = filing_publicity(8); if ($filings): ?>
-  <div class="menu-divider"></div>
-  <div class="menu-filing-list">
-    <div class="menu-filing-head">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/></svg>
-      备案公示
-    </div>
-    <?php foreach ($filings as $f): ?>
-    <a class="menu-filing-item" <?php echo !empty($f['link']) ? 'href="' . e($f['link']) . '" target="_blank" rel="noopener"' : 'href="javascript:void(0);"'; ?>>
-      <div class="mf-main">
-        <div class="mf-name"><?php echo e($f['title']); ?></div>
-        <?php if (!empty($f['content']) || !empty($f['link'])): ?>
-        <div class="mf-info"><?php echo e($f['content'] ?: $f['link']); ?></div>
-        <?php endif; ?>
-      </div>
-      <div class="mf-time"><?php echo $f['created_at'] ? e(date('Y-m-d', strtotime($f['created_at']))) : ''; ?></div>
-      <?php if (!empty($f['link'])): ?><svg class="mf-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg><?php endif; ?>
-    </a>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
   <div class="menu-divider"></div>
   <?php if ($user): ?>
   <a href="<?php echo site_url('user'); ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 用户中心</a>
@@ -169,7 +148,28 @@ $user = current_user();
       </div>
     </div>
     <div class="footer-bottom">
-      <div><?php echo e($copyright); ?>　<?php echo e($icpInfo); ?></div>
+      <div>
+        <?php echo e($copyright); ?>　
+        <?php
+        // ICP 备案号前缀图片 (后台可配置)
+        $icpImgs = icp_prefix_images();
+        foreach ($icpImgs as $ii):
+          $iiLink = $ii['link'] ?: 'javascript:void(0);';
+          $iiTarget = $ii['link'] ? 'target="_blank" rel="noopener"' : '';
+        ?>
+          <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($ii['name']); ?>"><img src="<?php echo asset($ii['image']); ?>" alt="<?php echo e($ii['name']); ?>" style="height:16px;vertical-align:middle;margin:0 2px;"></a>
+        <?php endforeach; ?>
+        <?php
+        // ICP 备案号渲染为可点击链接 (萌ICP格式: https://icp.gov.moe/?keyword=XXXXXXXX)
+        $icpNo = $icpInfo;
+        if (preg_match('/(\d+)/', $icpNo, $m)) {
+          $keyword = $m[1];
+          echo '<a href="https://icp.gov.moe/?keyword=' . e($keyword) . '" target="_blank" rel="noopener">' . e($icpNo) . '</a>';
+        } else {
+          echo e($icpNo);
+        }
+        ?>
+      </div>
       <a class="tech-link" href="<?php echo e($techUrl); ?>" target="_blank"><?php echo e($techSupport); ?></a>
     </div>
   </div>

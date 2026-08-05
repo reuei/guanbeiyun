@@ -30,13 +30,15 @@ $activeSub = $activeSub ?? '';
     <nav class="sidebar-menu">
       <!-- 工作台 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='workbench'?'active':'' ?> <?php echo $activeSub==='uc-dashboard'?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='workbench'?'active':'' ?> <?php echo in_array($activeSub,['uc-dashboard','uc-messages','uc-notifications'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>工作台</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo $activeSub==='uc-dashboard'?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['uc-dashboard','uc-messages','uc-notifications'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='uc-dashboard'?'active':'' ?>" href="<?php echo site_url('user/dashboard'); ?>">总概览</a>
+          <a class="menu-item <?php echo $activeSub==='uc-messages'?'active':'' ?>" href="<?php echo site_url('user/messages'); ?>">私信</a>
+          <a class="menu-item <?php echo $activeSub==='uc-notifications'?'active':'' ?>" href="<?php echo site_url('user/notifications'); ?>">消息通知</a>
         </div>
       </div>
       <!-- 备案管理 -->

@@ -62,6 +62,13 @@ class FeedbackController extends Controller
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
             log_action('operation', ($type === 'report' ? '提交举报' : '提交反馈') . ": {$title}");
+            // v4: 自动通知管理员有新反馈/举报
+            $typeText = $type === 'report' ? '违法举报' : '意见反馈';
+            send_admin_notification("新{$typeText}", "有新的{$typeText}：{$title}", $type === 'report' ? 'report' : 'feedback');
+            // 若已登录用户提交则同时通知本人
+            if ($uid) {
+                send_notification($uid, "{$typeText}提交成功通知", "您的{$typeText}「{$title}」已提交，我们将尽快处理", $type === 'report' ? 'report' : 'feedback', site_url('user/feedback'));
+            }
             ok([], $type === 'report' ? '举报提交成功，我们将尽快处理' : '反馈提交成功，感谢您的支持');
         } catch (Throwable $e) {
             fail('提交失败: ' . $e->getMessage());

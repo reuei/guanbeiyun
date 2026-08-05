@@ -196,17 +196,6 @@ $articles = $articles ?? [];
     </div>
     <?php endif; ?>
 
-    <div class="publicity-card" style="margin-top:20px;">
-      <div class="ph"><span class="status-dot danger"></span> 失效/违规公示</div>
-      <div class="pb">
-        <?php if ($invalids): foreach ($invalids as $p): ?>
-          <div class="item"><span class="text-danger"><?php echo e($p['title']); ?></span><span class="text-muted text-sm"><?php echo e(date('Y-m-d', strtotime($p['created_at']))); ?></span></div>
-        <?php endforeach; else: ?>
-          <div class="item text-muted">暂无公示信息</div>
-        <?php endif; ?>
-      </div>
-    </div>
-
   </div>
 </section>
 

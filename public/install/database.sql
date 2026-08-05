@@ -208,6 +208,7 @@ CREATE TABLE `gb_notifications` (
   `title` varchar(200) NOT NULL,
   `content` text,
   `type` varchar(30) DEFAULT 'system',
+  `link` varchar(255) DEFAULT NULL COMMENT '跳转链接',
   `is_read` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
@@ -393,7 +394,7 @@ INSERT INTO `gb_config` (`name`, `value`, `remark`, `updated_at`) VALUES
 ('chat_violation_limit', '5', '窗口内违规次数上限', NOW()),
 ('chat_violation_ban_min', '60', '违规禁言时长(分钟,1-5小时随机基准)', NOW()),
 ('install_time', NOW(), '安装时间', NOW()),
-('version', '3.0.0', '版本', NOW());
+('version', '1.0.1', '版本', NOW());
 
 -- 默认文章
 INSERT INTO `gb_articles` (`title`, `slug`, `category`, `content`, `status`, `views`, `created_at`, `updated_at`) VALUES
@@ -406,3 +407,101 @@ INSERT INTO `gb_certifications` (`name`, `image`, `info`, `icon_style`, `sort`, 
 ('企业认证', '', '该用户已完成企业实名认证', 'cert-enterprise', 100, 1, NOW()),
 ('个人认证', '', '该用户已完成个人实名认证', 'cert-personal', 90, 1, NOW()),
 ('合作伙伴', '', '该用户为平台认证合作伙伴', 'cert-partner', 80, 1, NOW());
+
+-- ===== v4 新增表 =====
+
+-- 管理员通知表
+DROP TABLE IF EXISTS `gb_admin_notifications`;
+CREATE TABLE `gb_admin_notifications` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(200) NOT NULL,
+  `content` text,
+  `type` varchar(30) DEFAULT 'system',
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_read` (`is_read`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='管理员通知';
+
+-- 用户关注表
+DROP TABLE IF EXISTS `gb_user_follows`;
+CREATE TABLE `gb_user_follows` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL COMMENT '关注者',
+  `follow_id` int(11) NOT NULL COMMENT '被关注者',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_follow` (`user_id`, `follow_id`),
+  KEY `idx_follow` (`follow_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注';
+
+-- 用户拉黑表
+DROP TABLE IF EXISTS `gb_user_blocks`;
+CREATE TABLE `gb_user_blocks` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL COMMENT '拉黑者',
+  `blocked_id` int(11) NOT NULL COMMENT '被拉黑者',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_block` (`user_id`, `blocked_id`),
+  KEY `idx_blocked` (`blocked_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户拉黑';
+
+-- 用户点赞表
+DROP TABLE IF EXISTS `gb_user_likes`;
+CREATE TABLE `gb_user_likes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `target_id` int(11) NOT NULL,
+  `target_type` varchar(20) DEFAULT 'user' COMMENT 'user/message',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_like` (`user_id`, `target_id`, `target_type`),
+  KEY `idx_target` (`target_id`, `target_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户点赞';
+
+-- 用户举报表
+DROP TABLE IF EXISTS `gb_user_reports`;
+CREATE TABLE `gb_user_reports` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL COMMENT '举报者',
+  `target_id` int(11) NOT NULL COMMENT '被举报用户',
+  `reason` varchar(500) NOT NULL,
+  `status` tinyint(1) DEFAULT 0 COMMENT '0待处理 1已处理 2已驳回',
+  `remark` text,
+  `handled_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user` (`user_id`),
+  KEY `idx_target` (`target_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户举报';
+
+-- 私信表
+DROP TABLE IF EXISTS `gb_private_messages`;
+CREATE TABLE `gb_private_messages` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `from_id` int(11) NOT NULL,
+  `to_id` int(11) NOT NULL,
+  `content` text NOT NULL,
+  `msg_type` varchar(20) DEFAULT 'text' COMMENT 'text/image/emoji',
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_from` (`from_id`),
+  KEY `idx_to` (`to_id`),
+  KEY `idx_read` (`to_id`, `is_read`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='私信';
+
+-- 备案号前缀图片表 (后台 ICP 图片管理)
+DROP TABLE IF EXISTS `gb_icp_images`;
+CREATE TABLE `gb_icp_images` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '图片名称',
+  `image` varchar(255) NOT NULL COMMENT '图片路径',
+  `link` varchar(255) DEFAULT NULL COMMENT '点击跳转链接',
+  `sort` int(11) DEFAULT 0,
+  `status` tinyint(1) DEFAULT 1,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备案号前缀图片';

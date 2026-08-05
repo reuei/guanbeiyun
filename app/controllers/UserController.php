@@ -113,6 +113,8 @@ class UserController extends Controller
         // 备案号由后台审核通过后自动分配 (管ICP备xxxxxxxx号)
         db()->insert('filings', $data);
         log_op("提交备案申请: {$data['site_name']} ({$data['site_domain']})");
+        // v4: 自动通知管理员有新备案申请
+        send_admin_notification('新备案申请', "用户 {$u['username']} 提交了新备案申请：{$data['site_name']} ({$data['site_domain']})", 'filing');
         ok([], '备案申请已提交，等待审核。审核通过后将自动分配备案号 (格式: 管ICP备xxxxxxxx号)');
     }
 
@@ -259,6 +261,8 @@ class UserController extends Controller
             'created_at' => date('Y-m-d H:i:s'),
         ]);
         log_op('提交账号注销申请');
+        // v4: 自动通知管理员有新注销申请
+        send_admin_notification('新账号注销申请', "用户 {$u['username']} 提交了账号注销申请", 'account');
         ok([], '注销申请已提交，等待审核');
     }
 
@@ -276,6 +280,20 @@ class UserController extends Controller
             http_response_code(404);
             require __DIR__ . '/../views/errors/404.php';
             return;
+        }
+        // v4: 拉黑后不可见该用户
+        $viewer = current_user();
+        if ($viewer && (int)$viewer['id'] !== $id) {
+            if (is_blocked_by($viewer['id'], $id)) {
+                http_response_code(403);
+                echo '<section class="section"><div class="container"><div class="empty">您已拉黑该用户，无法查看</div></div></section>';
+                return;
+            }
+            if (is_blocked_by($id, $viewer['id'])) {
+                http_response_code(403);
+                echo '<section class="section"><div class="container"><div class="empty">该用户已设置隐私，无法查看</div></div></section>';
+                return;
+            }
         }
         $certs = user_certifications($id);
         // 用户已通过备案
@@ -335,6 +353,8 @@ class UserController extends Controller
         ]);
         db()->insert('ticket_replies', ['ticket_id' => $id, 'user_id' => $u['id'], 'role' => 'user', 'content' => $content, 'created_at' => date('Y-m-d H:i:s')]);
         log_op("创建工单: {$title}");
+        // v4: 自动通知管理员有新工单
+        send_admin_notification('新工单提交', "用户 {$u['username']} 提交了新工单：{$title}", 'ticket');
         ok([], '工单已提交');
     }
 
@@ -348,6 +368,8 @@ class UserController extends Controller
         if (!$ticket) fail('工单不存在');
         db()->insert('ticket_replies', ['ticket_id' => $id, 'user_id' => $u['id'], 'role' => 'user', 'content' => $content, 'created_at' => date('Y-m-d H:i:s')]);
         db()->update('tickets', ['status' => 0, 'updated_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $id]);
+        // v4: 自动通知管理员工单有新回复
+        send_admin_notification('工单新回复', "用户 {$u['username']} 回复了工单「{$ticket['title']}」", 'ticket');
         ok([], '回复成功');
     }
 
@@ -455,6 +477,8 @@ class UserController extends Controller
         if (!$data['name']) fail('请输入名称');
         db()->insert('applications', $data);
         log_op("提交{$type}认证申请: {$data['name']}");
+        // v4: 自动通知管理员有新认证申请
+        send_admin_notification('新认证申请', "用户 {$u['username']} 提交了{$type}认证申请：{$data['name']}", 'cert');
         ok([], '认证申请已提交');
     }
 
@@ -490,6 +514,8 @@ class UserController extends Controller
         if (!$data['name']) fail('请输入名称');
         db()->insert('applications', $data);
         log_op("提交合作伙伴申请: {$data['name']}");
+        // v4: 自动通知管理员有新合作方申请
+        send_admin_notification('新合作方申请', "用户 {$u['username']} 提交了合作伙伴申请：{$data['name']}", 'cert');
         ok([], '申请已提交');
     }
 
@@ -506,4 +532,178 @@ class UserController extends Controller
             'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
         ], 'user');
     }
+
+// v4: 关注/取消关注
+public function follow()
+{
+    $u = current_user();
+    $targetId = (int)input('target_id', 0);
+    if (!$targetId || $targetId == $u['id']) fail('参数错误');
+    $target = db()->queryOne("SELECT id, username FROM " . db()->table('users') . " WHERE id=? AND status=1", [$targetId]);
+    if (!$target) fail('用户不存在');
+    $existing = db()->queryOne("SELECT id FROM " . db()->table('user_follows') . " WHERE user_id=? AND follow_id=?", [$u['id'], $targetId]);
+    if ($existing) {
+        db()->delete('user_follows', 'id=?', [$existing['id']]);
+        ok(['following' => false], '已取消关注');
+    } else {
+        db()->insert('user_follows', ['user_id' => $u['id'], 'follow_id' => $targetId, 'created_at' => date('Y-m-d H:i:s')]);
+        send_notification($targetId, '新粉丝通知', "用户 {$u['username']} 关注了您", 'follow', site_url('u/' . $u['id']));
+        log_op("关注用户: {$target['username']}");
+        ok(['following' => true], '关注成功');
+    }
+}
+
+// v4: 拉黑/取消拉黑
+public function block()
+{
+    $u = current_user();
+    $targetId = (int)input('target_id', 0);
+    if (!$targetId || $targetId == $u['id']) fail('参数错误');
+    $existing = db()->queryOne("SELECT id FROM " . db()->table('user_blocks') . " WHERE user_id=? AND blocked_id=?", [$u['id'], $targetId]);
+    if ($existing) {
+        db()->delete('user_blocks', 'id=?', [$existing['id']]);
+        ok(['blocked' => false], '已取消拉黑');
+    } else {
+        db()->insert('user_blocks', ['user_id' => $u['id'], 'blocked_id' => $targetId, 'created_at' => date('Y-m-d H:i:s')]);
+        // 拉黑同时取消关注
+        db()->delete('user_follows', 'user_id=? AND follow_id=?', [$u['id'], $targetId]);
+        log_op('拉黑用户 #' . $targetId);
+        ok(['blocked' => true], '已拉黑');
+    }
+}
+
+// v4: 举报用户
+public function report()
+{
+    $u = current_user();
+    $targetId = (int)input('target_id', 0);
+    $reason = trim(input('reason', ''));
+    if (!$targetId) fail('参数错误');
+    if (!$reason) fail('请填写举报原因');
+    if (mb_strlen($reason) < 5) fail('举报原因至少5个字');
+    $target = db()->queryOne("SELECT id, username FROM " . db()->table('users') . " WHERE id=?", [$targetId]);
+    if (!$target) fail('用户不存在');
+    db()->insert('user_reports', [
+        'user_id' => $u['id'], 'target_id' => $targetId, 'reason' => $reason,
+        'status' => 0, 'created_at' => date('Y-m-d H:i:s'),
+    ]);
+    send_admin_notification('新用户举报', "用户 {$u['username']} 举报了用户 {$target['username']}：{$reason}", 'report');
+    log_op("举报用户: {$target['username']}");
+    ok([], '举报已提交，等待处理');
+}
+
+// v4: 点赞/取消点赞 (用户)
+public function like()
+{
+    $u = current_user();
+    $targetId = (int)input('target_id', 0);
+    $targetType = input('target_type', 'user');
+    if (!in_array($targetType, ['user', 'message'])) fail('类型无效');
+    if (!$targetId) fail('参数错误');
+    $existing = db()->queryOne("SELECT id FROM " . db()->table('user_likes') . " WHERE user_id=? AND target_id=? AND target_type=?", [$u['id'], $targetId, $targetType]);
+    if ($existing) {
+        db()->delete('user_likes', 'id=?', [$existing['id']]);
+        ok(['liked' => false], '已取消点赞');
+    } else {
+        db()->insert('user_likes', ['user_id' => $u['id'], 'target_id' => $targetId, 'target_type' => $targetType, 'created_at' => date('Y-m-d H:i:s')]);
+        ok(['liked' => true], '点赞成功');
+    }
+}
+
+// v4: 私信列表页 GET /user/messages
+public function messages()
+{
+    $u = current_user();
+    $toId = (int)input('to', 0);
+    $partner = null;
+    if ($toId) {
+        $partner = db()->queryOne("SELECT id, username, avatar FROM " . db()->table('users') . " WHERE id=? AND status=1", [$toId]);
+    }
+    // 会话列表 (最近私聊过的用户)
+    $p = db()->prefix();
+    $conversations = [];
+    try {
+        $conversations = db()->query(
+            "SELECT IF(from_id=?, to_id, from_id) AS peer_id, MAX(created_at) AS last_time "
+            . "FROM {$p}private_messages WHERE from_id=? OR to_id=? "
+            . "GROUP BY peer_id ORDER BY last_time DESC",
+            [$u['id'], $u['id'], $u['id']]
+        );
+        foreach ($conversations as &$c) {
+            $peer = db()->queryOne("SELECT id, username, avatar FROM " . db()->table('users') . " WHERE id=?", [$c['peer_id']]);
+            $c['username'] = $peer['username'] ?? '已注销';
+            $c['avatar'] = $peer['avatar'] ?? '';
+            $lastMsg = db()->queryOne("SELECT content, from_id, is_read, created_at FROM {$p}private_messages WHERE (from_id=? AND to_id=?) OR (from_id=? AND to_id=?) ORDER BY id DESC LIMIT 1", [$u['id'], $c['peer_id'], $c['peer_id'], $u['id']]);
+            $c['last_content'] = $lastMsg['content'] ?? '';
+            $c['last_from_me'] = $lastMsg && $lastMsg['from_id'] == $u['id'];
+            $c['unread'] = (int)db()->queryScalar("SELECT COUNT(*) FROM {$p}private_messages WHERE from_id=? AND to_id=? AND is_read=0", [$c['peer_id'], $u['id']]);
+        }
+        unset($c);
+    } catch (Throwable $e) {}
+    $this->view('user/messages', [
+        'pageTitle' => '私信', 'crumb' => '工作台 / 私信',
+        'activeMenu' => 'workbench', 'activeSub' => 'uc-messages',
+        'conversations' => $conversations, 'partner' => $partner, 'toId' => $toId,
+    ], 'user');
+}
+
+// v4: 获取与某用户的对话消息 GET /user/messages/chat
+public function messageChat()
+{
+    $u = current_user();
+    $peerId = (int)input('peer_id', 0);
+    if (!$peerId) fail('参数错误');
+    // 检查拉黑关系 (互相拉黑则不可私聊)
+    if (is_blocked_by($u['id'], $peerId)) fail('您已拉黑对方，无法私聊');
+    if (is_blocked_by($peerId, $u['id'])) fail('对方已拉黑您，无法私聊');
+    // 标记对方发来的消息为已读
+    db()->execute("UPDATE " . db()->table('private_messages') . " SET is_read=1 WHERE from_id=? AND to_id=? AND is_read=0", [$peerId, $u['id']]);
+    $rows = db()->query(
+        "SELECT m.*, u.username, u.avatar FROM " . db()->table('private_messages') . " m "
+        . "LEFT JOIN " . db()->table('users') . " u ON u.id=m.from_id "
+        . "WHERE (m.from_id=? AND m.to_id=?) OR (m.from_id=? AND m.to_id=?) "
+        . "ORDER BY m.id ASC LIMIT 100",
+        [$u['id'], $peerId, $peerId, $u['id']]
+    );
+    $list = [];
+    foreach ($rows as $r) {
+        $list[] = [
+            'id' => (int)$r['id'],
+            'from_id' => (int)$r['from_id'],
+            'to_id' => (int)$r['to_id'],
+            'content' => (string)$r['content'],
+            'msg_type' => $r['msg_type'] ?? 'text',
+            'is_me' => $r['from_id'] == $u['id'],
+            'username' => $r['username'] ?? '',
+            'avatar' => !empty($r['avatar']) ? asset($r['avatar']) : '',
+            'created_at' => $r['created_at'],
+        ];
+    }
+    ok(['messages' => $list]);
+}
+
+// v4: 发送私信 POST /user/messages/send
+public function sendMessage()
+{
+    $u = current_user();
+    $toId = (int)input('to_id', 0);
+    $content = trim(input('content', ''));
+    $msgType = input('msg_type', 'text');
+    if (!in_array($msgType, ['text', 'image', 'emoji'])) $msgType = 'text';
+    if (!$toId) fail('参数错误');
+    if (!$content) fail('消息内容不能为空');
+    $target = db()->queryOne("SELECT id, username FROM " . db()->table('users') . " WHERE id=? AND status=1", [$toId]);
+    if (!$target) fail('用户不存在');
+    if ($toId == $u['id']) fail('不能给自己发私信');
+    // 拉黑检查
+    if (is_blocked_by($u['id'], $toId)) fail('您已拉黑对方');
+    if (is_blocked_by($toId, $u['id'])) fail('对方已拉黑您');
+    db()->insert('private_messages', [
+        'from_id' => $u['id'], 'to_id' => $toId, 'content' => $content,
+        'msg_type' => $msgType, 'is_read' => 0, 'created_at' => date('Y-m-d H:i:s'),
+    ]);
+    send_notification($toId, '新私信通知', "用户 {$u['username']} 给您发送了一条私信：" . mb_substr($content, 0, 30), 'message', site_url('user/messages?to=' . $u['id']));
+    log_op("发送私信给 {$target['username']}");
+    ok([], '发送成功');
+}
 }

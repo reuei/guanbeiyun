@@ -65,6 +65,14 @@ $router->post('/user/notification/read', 'UserController@readNotification');
 $router->post('/user/notification/read_all', 'UserController@readAllNotifications');
 $router->get('/user/notifications/unread_count', 'UserController@unreadCount');
 $router->post('/user/deletion/apply', 'UserController@applyDeletion');
+// v4: 用户社交与私聊
+$router->post('/user/follow', 'UserController@follow');
+$router->post('/user/block', 'UserController@block');
+$router->post('/user/report', 'UserController@report');
+$router->post('/user/like', 'UserController@like');
+$router->get('/user/messages', 'UserController@messages');
+$router->post('/user/messages/chat', 'UserController@messageChat');
+$router->post('/user/messages/send', 'UserController@sendMessage');
 
 // ====== 后台管理 ======
 $router->get('/admin', 'AdminController@index');
@@ -122,6 +130,21 @@ $router->post('/admin/certification/delete', 'AdminController@deleteCertificatio
 // 注销申请管理
 $router->get('/admin/deletions', 'AdminController@deletions');
 $router->post('/admin/deletion/audit', 'AdminController@auditDeletion');
+// v4: 后台消息通知 (管理员自身收到的通知)
+$router->get('/admin/notifications', 'AdminController@adminNotifications');
+$router->post('/admin/notification/read', 'AdminController@readAdminNotification');
+$router->post('/admin/notification/read_all', 'AdminController@readAllAdminNotifications');
+$router->post('/admin/notification/delete', 'AdminController@deleteAdminNotification');
+// v4: ICP 备案号前图片管理
+$router->get('/admin/icp-images', 'AdminController@icpImages');
+$router->post('/admin/icp-image/save', 'AdminController@saveIcpImage');
+$router->post('/admin/icp-image/delete', 'AdminController@deleteIcpImage');
+// v4: 后台私信查看
+$router->get('/admin/private-messages', 'AdminController@privateMessages');
+$router->post('/admin/private-message/delete', 'AdminController@deletePrivateMessage');
+// v4: 用户举报管理 (用户间举报)
+$router->get('/admin/user-reports', 'AdminController@userReports');
+$router->post('/admin/user-report/audit', 'AdminController@auditUserReport');
 // 聊天室管理
 $router->get('/admin/chat', 'AdminController@chat');
 $router->post('/admin/chat/config', 'AdminController@saveChatConfig');
@@ -140,3 +163,5 @@ $router->get('/admin/logs/clear', 'AdminController@clearLogs');
 // ====== API ======
 $router->get('/api/stats', 'ApiController@stats');
 $router->get('/api/notifications', 'ApiController@notifications');
+$router->get('/api/admin/notifications', 'ApiController@adminNotifications');
+$router->get('/api/admin/unread_count', 'ApiController@adminUnreadCount');

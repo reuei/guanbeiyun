@@ -154,6 +154,12 @@ class AdminController extends Controller
         $reply = trim(input('reply', ''));
         if (!$id) fail('参数错误');
         db()->update('feedbacks', ['status' => $status, 'reply' => $reply, 'replied_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $id]);
+        // v4: 自动通知用户反馈/举报处理结果
+        $fb = db()->queryOne("SELECT * FROM " . db()->table('feedbacks') . " WHERE id = ?", [$id]);
+        if ($fb && $fb['user_id']) {
+            $typeText = $fb['type'] === 'report' ? '举报' : '反馈';
+            send_notification($fb['user_id'], "{$typeText}处理结果通知", "您的{$typeText}「{$fb['title']}」已处理，回复：{$reply}", 'feedback', site_url('user/feedback'));
+        }
         log_action('operation', "处理反馈/举报 #{$id}", admin_user()['id'], 'admin');
         ok([], '已处理');
     }
@@ -181,6 +187,15 @@ class AdminController extends Controller
         if ($status === 1) {
             $this->syncFilingPublicity($id, $filing, $data['icp_no'] ?? $filing['icp_no']);
         }
+        // v4: 自动通知用户备案审核结果
+        $statusText = [1 => '已通过', 2 => '未通过', 3 => '已撤销'][$status] ?? '未知';
+        $finalIcp = $data['icp_no'] ?? $filing['icp_no'] ?? '';
+        $notifyContent = "您的备案申请「{$filing['site_name']}」审核结果：{$statusText}";
+        if ($status === 1 && $finalIcp) {
+            $notifyContent .= "，备案号：{$finalIcp}";
+        }
+        if ($remark) $notifyContent .= "，审核意见：{$remark}";
+        send_notification($filing['user_id'], '备案审核结果通知', $notifyContent, 'filing', site_url('user/filings'));
         log_action('operation', "审核备案 #{$id} 状态={$status}", admin_user()['id'], 'admin');
         ok([], '审核完成');
     }
@@ -344,6 +359,11 @@ class AdminController extends Controller
         if ($status === 1) {
             db()->update('users', ['status' => 0, 'updated_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $del['user_id']]);
         }
+        // v4: 自动通知用户注销申请审核结果
+        $statusText = $status === 1 ? '已通过' : '已驳回';
+        $notifyContent = "您的账号注销申请审核结果：{$statusText}";
+        if ($remark) $notifyContent .= "，审核意见：{$remark}";
+        send_notification($del['user_id'], '账号注销申请结果通知', $notifyContent, 'account', site_url('user'));
         log_action('operation', "审核注销申请 #{$id} 状态={$status}", admin_user()['id'], 'admin');
         ok([], '审核完成');
     }
@@ -407,13 +427,16 @@ class AdminController extends Controller
         $mins = max(1, (int)input('minutes', 60));
         $reason = trim(input('reason', '后台手动禁言'));
         if (!$userId) fail('参数错误');
+        $banUntil = date('Y-m-d H:i:s', time() + $mins * 60);
         db()->insert('chat_banned', [
             'user_id' => $userId,
             'reason' => $reason,
-            'banned_until' => date('Y-m-d H:i:s', time() + $mins * 60),
+            'banned_until' => $banUntil,
             'source' => 'manual',
             'created_at' => date('Y-m-d H:i:s'),
         ]);
+        // v4: 自动通知用户被禁言 (警告信息)
+        send_notification($userId, '聊天室禁言警告通知', "您已被管理员禁言，截止时间：{$banUntil}，原因：{$reason}", 'warning', site_url('chat'));
         log_action('operation', "禁言用户 #{$userId} {$mins}分钟", admin_user()['id'], 'admin');
         ok([], '已禁言');
     }
@@ -481,7 +504,17 @@ class AdminController extends Controller
         $status = (int)input('status', 0);
         $remark = trim(input('audit_remark', ''));
         if (!in_array($status, [1, 2])) fail('状态无效');
+        $app = db()->queryOne("SELECT * FROM " . db()->table('applications') . " WHERE id = ?", [$id]);
+        if (!$app) fail('申请不存在');
         db()->update('applications', ['status' => $status, 'audit_remark' => $remark, 'audited_at' => date('Y-m-d H:i:s'), 'audited_by' => admin_user()['id']], 'id = :id', ['id' => $id]);
+        // v4: 自动通知用户认证/合作方申请审核结果
+        $typeMap = ['enterprise' => '企业认证', 'personal' => '个人认证', 'partner' => '合作伙伴'];
+        $typeText = $typeMap[$app['type']] ?? '申请';
+        $statusText = $status === 1 ? '已通过' : '未通过';
+        $notifyContent = "您的{$typeText}申请「{$app['name']}」审核结果：{$statusText}";
+        if ($remark) $notifyContent .= "，审核意见：{$remark}";
+        $link = $app['type'] === 'partner' ? site_url('user/partner') : site_url('user/certification');
+        send_notification($app['user_id'], "{$typeText}申请结果通知", $notifyContent, 'cert', $link);
         log_action('operation', "审核申请 #{$id} 状态={$status}", admin_user()['id'], 'admin');
         ok([], '审核完成');
     }
@@ -536,6 +569,8 @@ class AdminController extends Controller
         if (!$ticket) fail('工单不存在');
         db()->insert('ticket_replies', ['ticket_id' => $id, 'user_id' => admin_user()['id'], 'role' => 'admin', 'content' => $content, 'created_at' => date('Y-m-d H:i:s')]);
         db()->update('tickets', ['status' => 1, 'updated_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $id]);
+        // v4: 自动通知用户工单回复
+        send_notification($ticket['user_id'], '工单回复通知', "您的工单「{$ticket['title']}」有新回复：{$content}", 'ticket', site_url('user/tickets'));
         log_action('operation', "回复工单 #{$id}", admin_user()['id'], 'admin');
         ok([], '回复成功');
     }
@@ -634,6 +669,165 @@ class AdminController extends Controller
         db()->insert('notifications', ['user_id' => $uid, 'title' => $title, 'content' => $content, 'type' => $type, 'created_at' => date('Y-m-d H:i:s')]);
         log_action('operation', "发送通知: {$title}", admin_user()['id'], 'admin');
         ok([], '发送成功');
+    }
+
+    /** v4: 后台消息通知列表 (管理员自身收到的通知) */
+    public function adminNotifications()
+    {
+        [$page, $size, $offset] = page_params();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('admin_notifications'));
+        $rows = db()->query("SELECT * FROM " . db()->table('admin_notifications') . " ORDER BY id DESC LIMIT $offset,$size");
+        $this->view('admin/admin_notifications', [
+            'pageTitle' => '消息通知', 'crumb' => '工作台 / 消息通知',
+            'activeMenu' => 'workbench', 'activeSub' => 'admin-notify',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'admin');
+    }
+
+    /** v4: 标记单条管理员通知为已读 */
+    public function readAdminNotification()
+    {
+        $id = (int)input('id', 0);
+        if (!$id) fail('参数错误');
+        db()->execute("UPDATE " . db()->table('admin_notifications') . " SET is_read=1 WHERE id=?", [$id]);
+        ok([], '已标记为已读');
+    }
+
+    /** v4: 全部标记为已读 */
+    public function readAllAdminNotifications()
+    {
+        db()->execute("UPDATE " . db()->table('admin_notifications') . " SET is_read=1 WHERE is_read=0");
+        ok([], '全部已读');
+    }
+
+    /** v4: 删除管理员通知 */
+    public function deleteAdminNotification()
+    {
+        $id = (int)input('id', 0);
+        if (!$id) fail('参数错误');
+        db()->delete('admin_notifications', 'id=?', [$id]);
+        ok([], '已删除');
+    }
+
+    /** v4: 后台 ICP 备案号前图片管理 */
+    public function icpImages()
+    {
+        [$page, $size, $offset] = page_params();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('icp_images'));
+        $rows = db()->query("SELECT * FROM " . db()->table('icp_images') . " ORDER BY sort DESC, id ASC LIMIT $offset,$size");
+        $this->view('admin/icp_images', [
+            'pageTitle' => 'ICP备案号前图片', 'crumb' => '认证管理 / ICP备案号前图片',
+            'activeMenu' => 'auth', 'activeSub' => 'icp-images',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'admin');
+    }
+
+    public function saveIcpImage()
+    {
+        $id = (int)input('id', 0);
+        $data = [
+            'name'   => trim(input('name', '')),
+            'image'  => trim(input('image', '')),
+            'link'   => trim(input('link', '')),
+            'sort'   => (int)input('sort', 0),
+            'status' => (int)input('status', 1),
+        ];
+        if (!$data['name']) fail('请输入图片名称');
+        if (!$data['image']) fail('请上传图片');
+        if ($id) {
+            db()->update('icp_images', $data, 'id = :id', ['id' => $id]);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            db()->insert('icp_images', $data);
+        }
+        log_action('operation', "保存ICP图片配置 {$data['name']}", admin_user()['id'], 'admin');
+        ok([], '保存成功');
+    }
+
+    public function deleteIcpImage()
+    {
+        $id = (int)input('id', 0);
+        db()->delete('icp_images', 'id = ?', [$id]);
+        ok([], '已删除');
+    }
+
+    /** v4: 后台私信查看 (管理员可查看用户私聊内容) */
+    public function privateMessages()
+    {
+        [$page, $size, $offset] = page_params();
+        $kw = trim(input('kw', ''));
+        $fromId = (int)input('from_id', 0);
+        $toId = (int)input('to_id', 0);
+        $where = '1=1'; $params = [];
+        if ($fromId) { $where .= " AND m.from_id=?"; $params[] = $fromId; }
+        if ($toId) { $where .= " AND m.to_id=?"; $params[] = $toId; }
+        if ($kw) { $where .= " AND m.content LIKE ?"; $params[] = "%$kw%"; }
+        $total = (int)db()->queryScalar(
+            "SELECT COUNT(*) FROM " . db()->table('private_messages') . " m WHERE $where", $params
+        );
+        $rows = db()->query(
+            "SELECT m.*, uf.username AS from_name, uf.avatar AS from_avatar, ut.username AS to_name, ut.avatar AS to_avatar "
+            . "FROM " . db()->table('private_messages') . " m "
+            . "LEFT JOIN " . db()->table('users') . " uf ON uf.id=m.from_id "
+            . "LEFT JOIN " . db()->table('users') . " ut ON ut.id=m.to_id "
+            . "WHERE $where ORDER BY m.id DESC LIMIT $offset,$size", $params
+        );
+        $this->view('admin/private_messages', [
+            'pageTitle' => '私信查看', 'crumb' => '用户管理 / 私信查看',
+            'activeMenu' => 'users', 'activeSub' => 'private-messages',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+            'kw' => $kw, 'fromId' => $fromId, 'toId' => $toId,
+        ], 'admin');
+    }
+
+    public function deletePrivateMessage()
+    {
+        $id = (int)input('id', 0);
+        if (!$id) fail('参数错误');
+        db()->delete('private_messages', 'id=?', [$id]);
+        log_action('operation', "删除私信 #{$id}", admin_user()['id'], 'admin');
+        ok([], '已删除');
+    }
+
+    /** v4: 用户举报管理 (用户之间举报) */
+    public function userReports()
+    {
+        [$page, $size, $offset] = page_params();
+        $status = input('status', '');
+        $where = '1=1'; $params = [];
+        if ($status !== '') { $where .= " AND r.status=?"; $params[] = (int)$status; }
+        $total = (int)db()->queryScalar(
+            "SELECT COUNT(*) FROM " . db()->table('user_reports') . " r WHERE $where", $params
+        );
+        $rows = db()->query(
+            "SELECT r.*, uf.username AS reporter_name, ut.username AS target_name "
+            . "FROM " . db()->table('user_reports') . " r "
+            . "LEFT JOIN " . db()->table('users') . " uf ON uf.id=r.user_id "
+            . "LEFT JOIN " . db()->table('users') . " ut ON ut.id=r.target_id "
+            . "WHERE $where ORDER BY r.id DESC LIMIT $offset,$size", $params
+        );
+        $this->view('admin/user_reports', [
+            'pageTitle' => '用户举报管理', 'crumb' => '用户管理 / 用户举报管理',
+            'activeMenu' => 'users', 'activeSub' => 'user-reports',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size, 'status' => $status,
+        ], 'admin');
+    }
+
+    public function auditUserReport()
+    {
+        $id = (int)input('id', 0);
+        $status = (int)input('status', 0);
+        $remark = trim(input('remark', ''));
+        if (!in_array($status, [1, 2], true)) fail('状态无效'); // 1=已处理 2=已驳回
+        $row = db()->queryOne("SELECT * FROM " . db()->table('user_reports') . " WHERE id=?", [$id]);
+        if (!$row) fail('举报记录不存在');
+        db()->update('user_reports', ['status' => $status, 'remark' => $remark, 'handled_at' => date('Y-m-d H:i:s')], 'id=:id', ['id' => $id]);
+        $statusText = $status === 1 ? '已处理' : '已驳回';
+        $notifyContent = "您举报的用户「#{$row['target_id']}」处理结果：{$statusText}";
+        if ($remark) $notifyContent .= "，处理意见：{$remark}";
+        send_notification($row['user_id'], '举报处理结果通知', $notifyContent, 'report', site_url('user/feedback'));
+        log_action('operation', "处理用户举报 #{$id}：{$statusText}", admin_user()['id'], 'admin');
+        ok([], '处理成功');
     }
 
     /** 文章管理 */

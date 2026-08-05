@@ -18,6 +18,7 @@
                   <th>原因</th>
                   <th>状态</th>
                   <th>备案用户</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -35,6 +36,7 @@
                       <span><?php echo e($r['username'] ?: '匿名'); ?></span>
                     </a>
                   </td>
+                  <td><button class="btn btn-ghost btn-sm" onclick='showPubDetail(<?php echo json_encode(["type"=>"失效网站公示","icp_no"=>$r["icp_no"]?:"","title"=>$r["title"]?:"","content"=>$r["content"]?:"","link"=>$r["link"]?:"","reason"=>$r["reason"]?:"","username"=>$r["username"]?:"匿名","created_at"=>$r["created_at"]?:""], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); ?>)'>详情</button></td>
                 </tr>
                 <?php endforeach; ?>
               </tbody>
@@ -54,3 +56,28 @@
     <?php endif; ?>
   </div>
 </section>
+
+<!-- 公示详情弹窗 -->
+<div class="modal-overlay" id="pubDetailModal" onclick="if(event.target===this)gbModal.close('pubDetailModal')">
+  <div class="modal-box" style="max-width:520px;">
+    <div class="modal-head"><h3>公示详情</h3><span class="icon-btn" onclick="gbModal.close('pubDetailModal')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
+    <div class="modal-body" id="pdBody"></div>
+    <div class="modal-foot"><button class="btn btn-primary" onclick="gbModal.close('pubDetailModal')">关闭</button></div>
+  </div>
+</div>
+<script>
+function showPubDetail(d){
+  var html='<div class="detail-list">'+
+    '<div class="dl-item"><div class="dl-label">类型</div><div class="dl-value">'+(d.type||'-')+'</div></div>'+
+    '<div class="dl-item"><div class="dl-label">备案号</div><div class="dl-value">'+(d.icp_no||'-')+'</div></div>'+
+    '<div class="dl-item"><div class="dl-label">标题</div><div class="dl-value">'+(d.title||'-')+'</div></div>'+
+    '<div class="dl-item"><div class="dl-label">内容</div><div class="dl-value">'+(d.content||'-')+'</div></div>'+
+    (d.link?'<div class="dl-item"><div class="dl-label">网址</div><div class="dl-value"><a href="'+d.link+'" target="_blank" rel="noopener">'+d.link+'</a></div></div>':'')+
+    (d.reason?'<div class="dl-item"><div class="dl-label">失效原因</div><div class="dl-value">'+d.reason+'</div></div>':'')+
+    '<div class="dl-item"><div class="dl-label">备案用户</div><div class="dl-value">'+(d.username||'匿名')+'</div></div>'+
+    '<div class="dl-item"><div class="dl-label">公示时间</div><div class="dl-value">'+(d.created_at||'-')+'</div></div>'+
+    '</div>';
+  document.getElementById('pdBody').innerHTML=html;
+  gbModal.open('pubDetailModal');
+}
+</script>

@@ -31,30 +31,33 @@ $activeSub = $activeSub ?? '';
     <nav class="sidebar-menu">
       <!-- 工作台 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='workbench'?'active':'' ?> <?php echo in_array($activeSub,['dashboard','bigscreen'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='workbench'?'active':'' ?> <?php echo in_array($activeSub,['dashboard','bigscreen','admin-notify'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           <span>工作台</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['dashboard','bigscreen'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['dashboard','bigscreen','admin-notify'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='dashboard'?'active':'' ?>" href="<?php echo site_url('admin/dashboard'); ?>">总概览</a>
           <a class="menu-item <?php echo $activeSub==='bigscreen'?'active':'' ?>" href="<?php echo site_url('admin/bigscreen'); ?>">数据大屏</a>
+          <a class="menu-item <?php echo $activeSub==='admin-notify'?'active':'' ?>" href="<?php echo site_url('admin/notifications'); ?>">消息通知</a>
         </div>
       </div>
       <!-- 用户管理 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='users'?'active':'' ?> <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets','deletions'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='users'?'active':'' ?> <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets','deletions','private-messages','user-reports'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>用户管理</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets','deletions'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets','deletions','private-messages','user-reports'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='users'?'active':'' ?>" href="<?php echo site_url('admin/users'); ?>">用户管理</a>
           <a class="menu-item <?php echo $activeSub==='filings'?'active':'' ?>" href="<?php echo site_url('admin/filings'); ?>">备案管理</a>
           <a class="menu-item <?php echo $activeSub==='applications'?'active':'' ?>" href="<?php echo site_url('admin/applications'); ?>">申请管理</a>
           <a class="menu-item <?php echo $activeSub==='feedbacks'?'active':'' ?>" href="<?php echo site_url('admin/feedbacks'); ?>">反馈管理</a>
-          <a class="menu-item <?php echo $activeSub==='reports'?'active':'' ?>" href="<?php echo site_url('admin/reports'); ?>">举报管理</a>
+          <a class="menu-item <?php echo $activeSub==='reports'?'active':'' ?>" href="<?php echo site_url('admin/reports'); ?>">违法举报</a>
+          <a class="menu-item <?php echo $activeSub==='user-reports'?'active':'' ?>" href="<?php echo site_url('admin/user-reports'); ?>">用户举报</a>
           <a class="menu-item <?php echo $activeSub==='tickets'?'active':'' ?>" href="<?php echo site_url('admin/tickets'); ?>">工单管理</a>
+          <a class="menu-item <?php echo $activeSub==='private-messages'?'active':'' ?>" href="<?php echo site_url('admin/private-messages'); ?>">私信查看</a>
           <a class="menu-item <?php echo $activeSub==='deletions'?'active':'' ?>" href="<?php echo site_url('admin/deletions'); ?>">注销申请</a>
         </div>
       </div>
@@ -76,16 +79,17 @@ $activeSub = $activeSub ?? '';
       </div>
       <!-- 认证管理 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='auth'?'active':'' ?> <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity','certifications','pub-filing','pub-invalid'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='auth'?'active':'' ?> <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity','certifications','pub-filing','pub-invalid','icp-images'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.5 0 4.76 1.02 6.39 2.66"/></svg>
           <span>认证管理</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity','certifications','pub-filing','pub-invalid'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity','certifications','pub-filing','pub-invalid','icp-images'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='cert-apply'?'active':'' ?>" href="<?php echo site_url('admin/cert-apply'); ?>">申请管理</a>
           <a class="menu-item <?php echo $activeSub==='partner-apply'?'active':'' ?>" href="<?php echo site_url('admin/partner-apply'); ?>">合作方申请</a>
           <a class="menu-item <?php echo $activeSub==='publicity'?'active':'' ?>" href="<?php echo site_url('admin/publicity'); ?>">首页公示管理</a>
           <a class="menu-item <?php echo $activeSub==='certifications'?'active':'' ?>" href="<?php echo site_url('admin/certifications'); ?>">认证图片配置</a>
+          <a class="menu-item <?php echo $activeSub==='icp-images'?'active':'' ?>" href="<?php echo site_url('admin/icp-images'); ?>">ICP备案号前图片</a>
           <a class="menu-item <?php echo $activeSub==='pub-filing'?'active':'' ?>" href="<?php echo site_url('admin/publicity/filing'); ?>">备案公示管理</a>
           <a class="menu-item <?php echo $activeSub==='pub-invalid'?'active':'' ?>" href="<?php echo site_url('admin/publicity/invalid'); ?>">失效网站公示</a>
         </div>
@@ -133,6 +137,10 @@ $activeSub = $activeSub ?? '';
         <a class="icon-btn" href="<?php echo site_url(); ?>" target="_blank" title="访问前台">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
         </a>
+        <button class="icon-btn notify-btn" onclick="openAdminNotifyModal()" title="消息通知">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notify-badge" id="adminNotifyBadge" style="display:none;">0</span>
+        </button>
         <button class="icon-btn theme-toggle" onclick="gbToggleTheme()" title="切换主题">
           <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
           <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -151,8 +159,72 @@ $activeSub = $activeSub ?? '';
   </div>
 </div>
 <div class="toast-container" id="gb-toast-container"></div>
+
+<!-- 后台消息通知弹窗 -->
+<div class="modal-overlay" id="adminNotifyModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>消息通知</h3><span class="icon-btn" onclick="gbModal.close('adminNotifyModal')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
+    <div class="modal-body" id="adminNotifyModalBody">
+      <div class="empty" style="padding:30px 0;">加载中...</div>
+    </div>
+    <div class="modal-foot">
+      <a class="btn btn-ghost" href="<?php echo site_url('admin/notifications'); ?>">点击显示全部通知</a>
+      <button class="btn btn-primary" onclick="gbModal.close('adminNotifyModal')">关闭</button>
+    </div>
+  </div>
+</div>
+<style>
+.notify-btn{position:relative;}
+.notify-badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--danger,#ef4444);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;line-height:1;border:2px solid var(--bg-elevated);box-sizing:content-box;}
+.notify-modal-item{padding:12px 0;border-bottom:1px solid var(--divider);}
+.notify-modal-item:last-child{border-bottom:none;}
+.notify-modal-item .nmi-title{font-size:13px;color:var(--text);display:flex;align-items:center;gap:6px;}
+.notify-modal-item .nmi-content{font-size:12px;color:var(--text-muted);margin-top:3px;}
+.notify-modal-item .nmi-time{font-size:11px;color:var(--text-muted);margin-top:4px;}
+.nmi-dot{width:7px;height:7px;border-radius:50%;background:var(--danger,#ef4444);flex-shrink:0;display:inline-block;}
+</style>
 <script src="<?php echo asset('assets/js/app.js'); ?>"></script>
 <script src="<?php echo asset('assets/js/slider-captcha.js'); ?>"></script>
+<script>
+function updateAdminNotifyBadge(count){
+  var b=document.getElementById('adminNotifyBadge');if(!b)return;
+  count=parseInt(count,10)||0;
+  if(count>0){b.textContent=count>99?'99+':count;b.style.display='flex';}
+  else{b.style.display='none';}
+}
+function fetchAdminUnreadCount(){
+  gbAjax({method:'GET',url:'<?php echo site_url('api/admin/unread_count'); ?>',toast:false,success:function(r){
+    if(r&&r.code===0&&r.data){updateAdminNotifyBadge(r.data.count||0);}
+  }});
+}
+function openAdminNotifyModal(){
+  gbModal.open('adminNotifyModal');
+  var body=document.getElementById('adminNotifyModalBody');
+  if(body) body.innerHTML='<div class="empty" style="padding:30px 0;">加载中...</div>';
+  gbAjax({method:'GET',url:'<?php echo site_url('api/admin/notifications'); ?>',toast:false,success:function(r){
+    var list=(r&&r.code===0&&r.data&&r.data.list)?r.data.list:[];
+    if(!list.length){body.innerHTML='<div class="empty" style="padding:30px 0;">暂无通知</div>';return;}
+    var html='';
+    for(var i=0;i<list.length&&i<5;i++){
+      var n=list[i];
+      var unread=(n.is_read==0);
+      html+='<div class="notify-modal-item">'+
+        '<div class="nmi-title">'+(unread?'<span class="nmi-dot"></span>':'')+(n.title||'(无标题)')+'</div>'+
+        '<div class="nmi-content">'+(n.content||'')+'</div>'+
+        '<div class="nmi-time">'+(n.created_at||'')+'</div>'+
+        '</div>';
+    }
+    body.innerHTML=html;
+    // 自动全部已读
+    gbAjax({method:'POST',url:'<?php echo site_url('admin/notification/read_all'); ?>',toast:false,success:function(){
+      updateAdminNotifyBadge(0);
+    }});
+  },fail:function(){
+    body.innerHTML='<div class="empty" style="padding:30px 0;">加载失败，请<a href="<?php echo site_url('admin/notifications'); ?>">查看全部通知</a></div>';
+  }});
+}
+(function(){fetchAdminUnreadCount();setInterval(fetchAdminUnreadCount,60000);})();
+</script>
 <?php if (!empty($inlineJs)): ?><script><?php echo $inlineJs; ?></script><?php endif; ?>
 </body>
 </html>

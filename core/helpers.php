@@ -81,20 +81,17 @@ function site_config($key = null, $default = null)
     return $GLOBALS['_gb_site_config_cache'][$key] ?? $default;
 }
 
-/** 设置配置项 (写入数据库 + 同步更新缓存) */
+/** 设置配置项 (写入数据库 + 同步更新缓存) — 使用 INSERT ON DUPLICATE KEY UPDATE 原子操作 */
 function set_site_config($name, $value)
 {
     if (!isset($GLOBALS['_gb_site_config_cache'])) {
-        // 触发一次缓存加载
         site_config();
     }
-    $exists = db()->queryOne("SELECT id FROM " . db()->table('config') . " WHERE name = ?", [$name]);
-    if ($exists) {
-        db()->update('config', ['value' => $value, 'updated_at' => date('Y-m-d H:i:s')], 'name = :n', ['n' => $name]);
-    } else {
-        db()->insert('config', ['name' => $name, 'value' => $value, 'updated_at' => date('Y-m-d H:i:s')]);
-    }
-    // 同步更新缓存,使本请求后续读取为新值
+    $now = date('Y-m-d H:i:s');
+    $p = db()->prefix();
+    $sql = "INSERT INTO {$p}config (name, value, updated_at) VALUES (?, ?, ?) "
+         . "ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)";
+    db()->execute($sql, [$name, $value, $now]);
     $GLOBALS['_gb_site_config_cache'][$name] = $value;
 }
 
@@ -307,7 +304,6 @@ function time_ago($datetime)
 /** 网站是否处于维护模式 (排除管理员与后台/登录接口) */
 function is_maintenance_mode()
 {
-    if (!is_file(GB_ROOT . '/config/config.php')) return false;
     $path = request_path();
     // 后台、登录、API 与安装程序不拦截
     $allow = ['/admin', '/login', '/logout', '/api/', '/captcha', '/oauth'];
@@ -414,4 +410,96 @@ function unread_notification_count($userId)
     } catch (Throwable $e) {
         return 0;
     }
+}
+
+/** 发送通知给用户 (v4: 统一通知入口) */
+function send_notification($userId, $title, $content, $type = 'system', $link = '')
+{
+    try {
+        db()->insert('notifications', [
+            'user_id'    => (int)$userId,
+            'title'      => $title,
+            'content'    => $content,
+            'type'       => $type,
+            'link'       => $link,
+            'is_read'    => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+    } catch (Throwable $e) {}
+}
+
+/** 发送通知给管理员 */
+function send_admin_notification($title, $content, $type = 'system')
+{
+    try {
+        db()->insert('admin_notifications', [
+            'title'      => $title,
+            'content'    => $content,
+            'type'       => $type,
+            'is_read'    => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+    } catch (Throwable $e) {}
+}
+
+/** 获取管理员未读通知数量 */
+function unread_admin_notification_count()
+{
+    try {
+        return (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('admin_notifications') . " WHERE is_read = 0");
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+/** 检查当前用户是否被某用户拉黑 */
+function is_blocked_by($blockedUserId, $byUserId)
+{
+    try {
+        $row = db()->queryOne(
+            "SELECT id FROM " . db()->table('user_blocks') . " WHERE user_id = ? AND blocked_id = ?",
+            [$byUserId, $blockedUserId]
+        );
+        return $row ? true : false;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+/** 获取备案号前缀图片 (后台 ICP 图片管理) */
+function icp_prefix_images()
+{
+    static $cache = null;
+    if ($cache !== null) return $cache;
+    $cache = [];
+    try {
+        $cache = db()->query("SELECT * FROM " . db()->table('icp_images') . " WHERE status=1 ORDER BY sort DESC, id ASC");
+    } catch (Throwable $e) {}
+    return $cache;
+}
+
+/** 获取用户已通过的备案号列表 (用于底部萌ICP链接) */
+function user_filing_links($userId)
+{
+    $links = [];
+    try {
+        $rows = db()->query(
+            "SELECT icp_no, site_name, site_url FROM " . db()->table('filings')
+            . " WHERE user_id = ? AND status = 1 AND icp_no IS NOT NULL AND icp_no != ''",
+            [$userId]
+        );
+        foreach ($rows as $r) {
+            $links[] = $r;
+        }
+    } catch (Throwable $e) {}
+    return $links;
+}
+
+/** 获取随机背景图 URL (个人中心用, 每次刷新不同) */
+function random_bg_image()
+{
+    $imgs = [
+        'https://picsum.photos/seed/' . mt_rand(1, 9999) . '/1200/400',
+    ];
+    return $imgs[0];
 }

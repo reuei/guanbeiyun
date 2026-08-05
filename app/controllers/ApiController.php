@@ -28,4 +28,23 @@ class ApiController extends Controller
             ok(['list' => []]);
         }
     }
+
+    /** v4: 管理员通知接口 (供后台通知弹窗使用) */
+    public function adminNotifications()
+    {
+        if (!is_admin_logged_in()) fail('请先登录', 401);
+        try {
+            $rows = db()->query("SELECT * FROM " . db()->table('admin_notifications') . " ORDER BY id DESC LIMIT 20");
+            ok(['list' => $rows]);
+        } catch (Throwable $e) {
+            ok(['list' => []]);
+        }
+    }
+
+    /** v4: 管理员未读通知数 */
+    public function adminUnreadCount()
+    {
+        if (!is_admin_logged_in()) fail('请先登录', 401);
+        ok(['count' => unread_admin_notification_count()]);
+    }
 }
