@@ -83,7 +83,7 @@ function write_config($data) {
             'name' => '管备云备案系统',
             'url' => '',
             'install_time' => date('Y-m-d H:i:s'),
-            'version' => '1.0.1',
+            'version' => '1.0.2',
         ],
         'session' => ['prefix' => 'gb_', 'lifetime' => 7200],
         'upload' => [

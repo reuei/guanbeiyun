@@ -89,9 +89,21 @@ function set_site_config($name, $value)
     }
     $now = date('Y-m-d H:i:s');
     $p = db()->prefix();
+    try {
+        @db()->execute("ALTER TABLE {$p}config ADD UNIQUE INDEX uk_config_name (name) IGNORE");
+    } catch (Throwable $e) {}
     $sql = "INSERT INTO {$p}config (name, value, updated_at) VALUES (?, ?, ?) "
          . "ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at)";
-    db()->execute($sql, [$name, $value, $now]);
+    try {
+        db()->execute($sql, [$name, $value, $now]);
+    } catch (Throwable $e) {
+        try {
+            db()->execute("DELETE FROM {$p}config WHERE name = ?", [$name]);
+            db()->execute("INSERT INTO {$p}config (name, value, updated_at) VALUES (?, ?, ?)", [$name, $value, $now]);
+        } catch (Throwable $e2) {
+            throw $e2;
+        }
+    }
     $GLOBALS['_gb_site_config_cache'][$name] = $value;
 }
 

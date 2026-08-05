@@ -344,16 +344,25 @@ class UserController extends Controller
         $u = current_user();
         $title = trim(input('title', ''));
         $category = input('category', 'general');
+        $allowedCategories = ['general', 'filing', 'account', 'bug', 'suggestion', 'other'];
+        if (!in_array($category, $allowedCategories, true)) {
+            $category = 'general';
+        }
         $priority = (int)input('priority', 1);
-        $content = trim(input('content', ''));
+        $content = trim(strip_tags(input('content', '')));
         if (!$title || !$content) fail('标题和内容必填');
         $id = db()->insert('tickets', [
             'user_id' => $u['id'], 'title' => $title, 'category' => $category, 'priority' => $priority,
             'status' => 0, 'created_at' => date('Y-m-d H:i:s'), 'updated_at' => date('Y-m-d H:i:s'),
         ]);
-        db()->insert('ticket_replies', ['ticket_id' => $id, 'user_id' => $u['id'], 'role' => 'user', 'content' => $content, 'created_at' => date('Y-m-d H:i:s')]);
+        if (!$id) {
+            $row = db()->queryOne("SELECT LAST_INSERT_ID() AS id");
+            $id = $row ? (int)$row['id'] : 0;
+        }
+        if ($id) {
+            db()->insert('ticket_replies', ['ticket_id' => $id, 'user_id' => $u['id'], 'role' => 'user', 'content' => $content, 'created_at' => date('Y-m-d H:i:s')]);
+        }
         log_op("创建工单: {$title}");
-        // v4: 自动通知管理员有新工单
         send_admin_notification('新工单提交', "用户 {$u['username']} 提交了新工单：{$title}", 'ticket');
         ok([], '工单已提交');
     }
@@ -706,4 +715,36 @@ public function sendMessage()
     log_op("发送私信给 {$target['username']}");
     ok([], '发送成功');
 }
+
+    public function blacklist()
+    {
+        $u = current_user();
+        [$page, $size, $offset] = page_params();
+        $p = db()->prefix();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM {$p}user_blocks WHERE user_id=?", [$u['id']]);
+        $rows = db()->query(
+            "SELECT b.id, b.blocked_id, b.created_at, u.username, u.avatar, u.email "
+            . "FROM {$p}user_blocks b LEFT JOIN {$p}users u ON u.id=b.blocked_id "
+            . "WHERE b.user_id=? ORDER BY b.id DESC LIMIT $offset,$size",
+            [$u['id']]
+        );
+        $this->view('user/blacklist', [
+            'pageTitle' => '黑名单管理', 'crumb' => '用户配置 / 黑名单',
+            'activeMenu' => 'settings', 'activeSub' => 'uc-blacklist',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'user');
+    }
+
+    public function unblock()
+    {
+        $u = current_user();
+        $targetId = (int)input('target_id', 0);
+        if (!$targetId || $targetId == $u['id']) fail('参数错误');
+        $existing = db()->queryOne("SELECT id FROM " . db()->table('user_blocks') . " WHERE user_id=? AND blocked_id=?", [$u['id'], $targetId]);
+        if ($existing) {
+            db()->delete('user_blocks', 'id=?', [$existing['id']]);
+        }
+        log_op('取消拉黑用户 #' . $targetId);
+        ok(['blocked' => false], '已取消拉黑');
+    }
 }

@@ -394,7 +394,7 @@ INSERT INTO `gb_config` (`name`, `value`, `remark`, `updated_at`) VALUES
 ('chat_violation_limit', '5', '窗口内违规次数上限', NOW()),
 ('chat_violation_ban_min', '60', '违规禁言时长(分钟,1-5小时随机基准)', NOW()),
 ('install_time', NOW(), '安装时间', NOW()),
-('version', '1.0.1', '版本', NOW());
+('version', '1.0.2', '版本', NOW());
 
 -- 默认文章
 INSERT INTO `gb_articles` (`title`, `slug`, `category`, `content`, `status`, `views`, `created_at`, `updated_at`) VALUES

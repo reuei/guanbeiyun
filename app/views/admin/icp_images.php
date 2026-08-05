@@ -1,6 +1,35 @@
-<?php /** ICP 备案号前图片管理 */
+<?php
 $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 15;
 ?>
+<style>
+.mock-preview-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #0c2461, #1e3799);
+  border-radius: 6px;
+  padding: 3px 10px 3px 3px;
+  height: 30px;
+  vertical-align: middle;
+}
+.mock-preview-box img {
+  height: 24px;
+  border-radius: 4px;
+}
+.mock-preview-text {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mock-wrap-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+</style>
 <div class="panel">
   <div class="panel-head">
     <span class="title">ICP 备案号前图片 <span class="tag tag-primary"><?php echo $total; ?></span></span>
@@ -8,12 +37,20 @@ $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 
   </div>
   <div class="table-wrap" style="border:none;">
     <table class="table">
-      <thead><tr><th>ID</th><th>预览</th><th>名称</th><th>链接</th><th>排序</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+      <thead><tr><th>ID</th><th>模拟展示效果</th><th>名称</th><th>链接</th><th>排序</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
       <tbody>
         <?php if ($rows): foreach ($rows as $r): ?>
         <tr>
           <td><?php echo (int)$r['id']; ?></td>
-          <td><?php if (!empty($r['image'])): ?><img src="<?php echo asset($r['image']); ?>" alt="" style="height:24px;vertical-align:middle;"><?php else: ?><span class="text-muted">-</span><?php endif; ?></td>
+          <td>
+            <?php if (!empty($r['image'])): ?>
+              <span class="mock-wrap-label">模拟展示：</span>
+              <span class="mock-preview-box">
+                <img src="<?php echo asset($r['image']); ?>" alt="">
+                <span class="mock-preview-text">管ICP备20260982号</span>
+              </span>
+            <?php else: ?><span class="text-muted">-</span><?php endif; ?>
+          </td>
           <td><?php echo e($r['name']); ?></td>
           <td class="text-sm"><?php echo !empty($r['link']) ? e($r['link']) : '<span class="text-muted">-</span>'; ?></td>
           <td><?php echo (int)$r['sort']; ?></td>
@@ -35,7 +72,7 @@ $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 
 
 <!-- 编辑弹窗 -->
 <div class="modal-overlay" id="icpEditModal" onclick="if(event.target===this)gbModal.close('icpEditModal')">
-  <div class="modal-box" style="max-width:480px;">
+  <div class="modal-box" style="max-width:520px;">
     <div class="modal-head"><h3 id="icpEditTitle">新增 ICP 图片</h3><span class="icon-btn" onclick="gbModal.close('icpEditModal')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
     <form id="icpForm" onsubmit="return saveIcpImage(event)">
       <input type="hidden" name="id" id="icpId" value="0">
@@ -45,6 +82,15 @@ $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 
       </div>
       <div class="form-group">
         <label class="form-label">图片 *</label>
+        <div class="form-hint" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(59,130,246,0.06),rgba(147,51,234,0.05));border:1px solid rgba(59,130,246,0.2);border-radius:6px;padding:10px 12px;">
+          <div style="font-weight:600;margin-bottom:4px;">📐 图片规范提示</div>
+          <div class="text-sm" style="line-height:1.7;">
+            • 展示高度：<b>24px</b>（行内展示），建议设计时考虑比例<br>
+            • 比例建议：<b>1:1 正方形</b>（徽章效果最佳），至少 <b>48x48 像素</b><br>
+            • 文件类型：推荐 <b>SVG / 透明 PNG</b>，支持 JPG/WEBP<br>
+            • 文件大小：<b>最大 512KB</b>，越小加载越快
+          </div>
+        </div>
         <div class="upload-box" onclick="uploadIcpImage()">
           <svg class="up-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div class="text-sm">点击上传</div>
@@ -53,6 +99,13 @@ $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 
           <img id="img_icp" src="">
           <div style="flex:1">
             <div class="text-sm" id="path_icp"></div>
+            <div style="margin-top:8px;">
+              <span class="mock-wrap-label">预览效果：</span>
+              <span class="mock-preview-box">
+                <img id="mock_icp" src="" style="height:24px;border-radius:4px;">
+                <span class="mock-preview-text">管ICP备20260982号</span>
+              </span>
+            </div>
             <button type="button" class="btn btn-danger btn-sm mt-2" onclick="clearIcpImage()">删除</button>
           </div>
         </div>
@@ -90,7 +143,11 @@ function editIcpImage(d){
     document.getElementById('icpStatus').value=d.status!=null?d.status:1;
     document.getElementById('input_icp').value=d.image||'';
     if(d.image){
-      document.getElementById('img_icp').src='<?php echo site_url(); ?>/'+d.image.replace(/^\//,'');
+      var base = '<?php echo site_url(); ?>/';
+      var rel = d.image.replace(/^\//,'');
+      var full = base + rel;
+      document.getElementById('img_icp').src=full;
+      document.getElementById('mock_icp').src=full;
       document.getElementById('path_icp').textContent=d.image;
       document.getElementById('prev_icp').style.display='flex';
     }else{
@@ -109,7 +166,7 @@ function editIcpImage(d){
   gbModal.open('icpEditModal');
 }
 function uploadIcpImage(){
-  var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*';
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='image/png,image/svg+xml,image/jpeg,image/webp,image/*';
   inp.onchange=function(){
     var fd=new FormData(); fd.append('file',inp.files[0]);
     var xhr=new XMLHttpRequest();
@@ -120,6 +177,7 @@ function uploadIcpImage(){
       try{var r=JSON.parse(xhr.responseText); if(r.code===0){
         document.getElementById('input_icp').value=r.data.url;
         document.getElementById('img_icp').src=r.data.full;
+        document.getElementById('mock_icp').src=r.data.full;
         document.getElementById('path_icp').textContent=r.data.url;
         document.getElementById('prev_icp').style.display='flex';
         gbToast.success('上传成功');

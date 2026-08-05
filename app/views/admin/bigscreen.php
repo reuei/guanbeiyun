@@ -44,7 +44,7 @@ $stats = $stats ?? [];
         <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#8b949e;font-size:13px;">系统运行</span><span style="color:#52c41a;font-size:13px;">● 正常</span></div>
         <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#8b949e;font-size:13px;">数据库</span><span style="color:#52c41a;font-size:13px;">● 正常</span></div>
         <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#8b949e;font-size:13px;">PHP版本</span><span style="color:#5b8def;font-size:13px;"><?php echo PHP_VERSION; ?></span></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#8b949e;font-size:13px;">系统版本</span><span style="color:#5b8def;font-size:13px;">v1.0.1</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#8b949e;font-size:13px;">系统版本</span><span style="color:#5b8def;font-size:13px;">v1.0.2</span></div>
         <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:#8b949e;font-size:13px;">服务器时间</span><span style="color:#5b8def;font-size:13px;" id="bsTime"><?php echo date('H:i:s'); ?></span></div>
       </div>
     </div>

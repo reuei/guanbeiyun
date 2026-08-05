@@ -37,6 +37,15 @@ $router->post('/chat/send', 'ChatController@send');
 $router->post('/chat/history', 'ChatController@history');
 // 个人中心 (公开)
 $router->get('/u/{id}', 'UserController@profileView');
+// 备案详情页
+$router->get('/filing/info/{icp_no}', 'FilingController@infoPage');
+// 验证码路由
+$router->get('/captcha/verify_code', 'CaptchaController@verifyCode');
+$router->post('/captcha/verify_code_check', 'CaptchaController@verifyCodeCheck');
+$router->get('/captcha/click_text', 'CaptchaController@clickText');
+$router->post('/captcha/click_text_check', 'CaptchaController@clickTextCheck');
+$router->get('/captcha/drag_image', 'CaptchaController@dragImage');
+$router->post('/captcha/drag_image_check', 'CaptchaController@dragImageCheck');
 
 // ====== 用户中心 ======
 $router->get('/user', 'UserController@index');
@@ -73,6 +82,8 @@ $router->post('/user/like', 'UserController@like');
 $router->get('/user/messages', 'UserController@messages');
 $router->post('/user/messages/chat', 'UserController@messageChat');
 $router->post('/user/messages/send', 'UserController@sendMessage');
+$router->get('/user/blacklist', 'UserController@blacklist');
+$router->post('/user/unblock', 'UserController@unblock');
 
 // ====== 后台管理 ======
 $router->get('/admin', 'AdminController@index');
@@ -112,8 +123,11 @@ $router->post('/admin/mail/save', 'AdminController@saveMail');
 $router->post('/admin/mail/test', 'AdminController@testMail');
 $router->get('/admin/oauth', 'AdminController@oauth');
 $router->post('/admin/oauth/save', 'AdminController@saveOauth');
+$router->post('/admin/oauth/test', 'AdminController@testOauth');
 $router->get('/admin/maintenance', 'AdminController@maintenance');
 $router->post('/admin/maintenance/save', 'AdminController@saveMaintenance');
+$router->get('/admin/captcha', 'AdminController@captcha');
+$router->post('/admin/captcha/save', 'AdminController@saveCaptcha');
 $router->get('/admin/cert-apply', 'AdminController@certApply');
 $router->get('/admin/partner-apply', 'AdminController@partnerApply');
 $router->post('/admin/apply/audit', 'AdminController@auditCertApp');

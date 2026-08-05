@@ -2,6 +2,13 @@
 /**
  * 备案查询控制器
  */
+
+function get_filing_info_url($icp_no)
+{
+    $base = site_config('filing_info_url', 'http://icp.uiyoi.icu/');
+    return rtrim($base, '/') . '/' . urlencode($icp_no);
+}
+
 class FilingController extends Controller
 {
     public function query()
@@ -49,5 +56,60 @@ class FilingController extends Controller
         } catch (Throwable $e) {
             fail('查询失败');
         }
+    }
+
+    public function infoPage($icp_no)
+    {
+        $icp_no = trim(urldecode($icp_no));
+        if (!$icp_no) {
+            $this->show404();
+            return;
+        }
+
+        try {
+            $filing = db()->queryOne(
+                "SELECT f.*, u.username, u.email, u.phone, u.avatar, u.certifications as user_certifications
+                 FROM " . db()->table('filings') . " f
+                 LEFT JOIN " . db()->table('users') . " u ON u.id = f.user_id
+                 WHERE f.icp_no = ? LIMIT 1",
+                [$icp_no]
+            );
+        } catch (Throwable $e) {
+            $filing = null;
+        }
+
+        if (!$filing) {
+            $this->show404();
+            return;
+        }
+
+        $prefixImage = null;
+        try {
+            $prefixImage = db()->queryOne(
+                "SELECT * FROM " . db()->table('icp_images') . " WHERE status=1 ORDER BY sort DESC, id ASC LIMIT 1"
+            );
+        } catch (Throwable $e) {}
+
+        $certifications = [];
+        if (!empty($filing['user_id'])) {
+            $certifications = user_certifications($filing['user_id']);
+        }
+
+        $this->view('filing/info', [
+            'pageTitle' => '管ICP备案信息公示 - ' . $icp_no,
+            'active' => 'query',
+            'filing' => $filing,
+            'prefixImage' => $prefixImage,
+            'certifications' => $certifications,
+        ]);
+    }
+
+    private function show404()
+    {
+        http_response_code(404);
+        $this->view('errors/404', [
+            'pageTitle' => '404 页面不存在',
+            'active' => '',
+        ]);
     }
 }

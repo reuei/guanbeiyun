@@ -21,7 +21,7 @@ return [
         'name'        => '管备云备案系统',
         'url'         => '',
         'install_time'=> '',
-        'version'     => '1.0.1',
+        'version'     => '1.0.2',
     ],
 
     // 会话

@@ -66,15 +66,16 @@ $activeSub = $activeSub ?? '';
       </div>
       <!-- 用户配置 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='settings'?'active':'' ?> <?php echo in_array($activeSub,['uc-profile','uc-cert','uc-partner'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='settings'?'active':'' ?> <?php echo in_array($activeSub,['uc-profile','uc-cert','uc-partner','uc-blacklist'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span>用户配置</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['uc-profile','uc-cert','uc-partner'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['uc-profile','uc-cert','uc-partner','uc-blacklist'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='uc-profile'?'active':'' ?>" href="<?php echo site_url('user/profile'); ?>">信息配置</a>
           <a class="menu-item <?php echo $activeSub==='uc-cert'?'active':'' ?>" href="<?php echo site_url('user/certification'); ?>">认证管理</a>
           <a class="menu-item <?php echo $activeSub==='uc-partner'?'active':'' ?>" href="<?php echo site_url('user/partner'); ?>">合作伙伴申请</a>
+          <a class="menu-item <?php echo $activeSub==='uc-blacklist'?'active':'' ?>" href="<?php echo site_url('user/blacklist'); ?>">黑名单管理</a>
         </div>
       </div>
       <!-- 日志管理 -->

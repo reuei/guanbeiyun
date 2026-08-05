@@ -147,28 +147,80 @@ $user = current_user();
         </ul>
       </div>
     </div>
-    <div class="footer-bottom">
-      <div>
-        <?php echo e($copyright); ?>　
+    <div class="footer-bottom" style="flex-wrap:wrap;gap:8px;">
+      <div style="flex:1;min-width:240px;">
+        <div style="line-height:2;">
+          <?php echo e($copyright); ?>
+        </div>
         <?php
-        // ICP 备案号前缀图片 (后台可配置)
+        $showAllIcp = (int)site_config('show_all_icp', 0) === 1;
+        $passedFilings = [];
+        try {
+          if ($showAllIcp) {
+            $passedFilings = db()->query(
+              "SELECT icp_no, site_name, site_domain FROM " . db()->table('filings')
+              . " WHERE status=1 AND icp_no IS NOT NULL AND icp_no != '' ORDER BY id DESC LIMIT 20"
+            );
+          } elseif ($user && !empty($user['id'])) {
+            $passedFilings = user_filing_links($user['id']);
+          }
+        } catch (Throwable $e) {}
+
+        $filingInfoBase = rtrim(site_config('filing_info_url', ''), '/');
         $icpImgs = icp_prefix_images();
-        foreach ($icpImgs as $ii):
-          $iiLink = $ii['link'] ?: 'javascript:void(0);';
-          $iiTarget = $ii['link'] ? 'target="_blank" rel="noopener"' : '';
+
+        if ($passedFilings): foreach ($passedFilings as $pf):
+          $pureNo = preg_replace('/[^\d]/', '', $pf['icp_no']);
+          if ($filingInfoBase && $pureNo) {
+            $pfLink = $filingInfoBase . '/' . urlencode($pureNo);
+          } else {
+            $pfLink = site_url('filing/info/' . urlencode($pf['icp_no']));
+          }
         ?>
-          <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($ii['name']); ?>"><img src="<?php echo asset($ii['image']); ?>" alt="<?php echo e($ii['name']); ?>" style="height:16px;vertical-align:middle;margin:0 2px;"></a>
-        <?php endforeach; ?>
-        <?php
-        // ICP 备案号渲染为可点击链接 (萌ICP格式: https://icp.gov.moe/?keyword=XXXXXXXX)
-        $icpNo = $icpInfo;
-        if (preg_match('/(\d+)/', $icpNo, $m)) {
-          $keyword = $m[1];
-          echo '<a href="https://icp.gov.moe/?keyword=' . e($keyword) . '" target="_blank" rel="noopener">' . e($icpNo) . '</a>';
-        } else {
-          echo e($icpNo);
-        }
-        ?>
+          <div style="line-height:2;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+            <?php foreach ($icpImgs as $ii):
+              $iiLink = $ii['link'] ?: 'javascript:void(0);';
+              $iiTarget = $ii['link'] ? 'target="_blank" rel="noopener"' : '';
+            ?>
+              <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($ii['name']); ?>">
+                <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#0c2461,#1e3799);border-radius:4px;padding:2px 6px;height:24px;vertical-align:middle;margin-right:2px;">
+                  <img src="<?php echo asset($ii['image']); ?>" alt="<?php echo e($ii['name']); ?>" style="height:24px;vertical-align:middle;">
+                </span>
+              </a>
+            <?php endforeach; ?>
+            <a href="<?php echo e($pfLink); ?>" target="_blank" rel="noopener" style="color:var(--text-muted, #6b7280); text-decoration:none;">
+              管ICP备<?php echo e($pureNo ?: $pf['icp_no']); ?>号
+            </a>
+          </div>
+        <?php endforeach; endif; ?>
+
+        <?php if (!empty($icpInfo)): ?>
+          <div style="line-height:2;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+            <?php foreach ($icpImgs as $ii):
+              $iiLink = $ii['link'] ?: 'javascript:void(0);';
+              $iiTarget = $ii['link'] ? 'target="_blank" rel="noopener"' : '';
+            ?>
+              <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($ii['name']); ?>">
+                <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#0c2461,#1e3799);border-radius:4px;padding:2px 6px;height:24px;vertical-align:middle;margin-right:2px;">
+                  <img src="<?php echo asset($ii['image']); ?>" alt="<?php echo e($ii['name']); ?>" style="height:24px;vertical-align:middle;">
+                </span>
+              </a>
+            <?php endforeach; ?>
+            <?php
+            if (preg_match('/管ICP备([^号]+)号/u', $icpInfo, $m)) {
+              $pureNo = preg_replace('/[^\d]/', '', $m[1]);
+              if ($filingInfoBase && $pureNo) {
+                $infoLink = $filingInfoBase . '/' . urlencode($pureNo);
+              } else {
+                $infoLink = site_url('filing/info/' . urlencode($icpInfo));
+              }
+              echo '<a href="'.e($infoLink).'" target="_blank" rel="noopener" style="color:var(--text-muted,#6b7280);text-decoration:none;">'.e($icpInfo).'</a>';
+            } else {
+              echo e($icpInfo);
+            }
+            ?>
+          </div>
+        <?php endif; ?>
       </div>
       <a class="tech-link" href="<?php echo e($techUrl); ?>" target="_blank"><?php echo e($techSupport); ?></a>
     </div>

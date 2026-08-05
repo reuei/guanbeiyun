@@ -255,11 +255,11 @@ class AdminController extends Controller
 
     public function saveMaintenance()
     {
-        $this->setConfig('maintenance_enabled', (int)input('maintenance_enabled', 0));
+        $this->setConfig('maintenance_enabled', intval(input('maintenance_enabled', 0)));
         $this->setConfig('maintenance_title', trim(input('maintenance_title', '')));
         $this->setConfig('maintenance_content', input('maintenance_content', ''));
         $this->setConfig('maintenance_recover_time', trim(input('maintenance_recover_time', '')));
-        log_action('operation', '更新网站维护配置 enabled=' . (int)input('maintenance_enabled', 0), admin_user()['id'], 'admin');
+        log_action('operation', '更新网站维护配置 enabled=' . intval(input('maintenance_enabled', 0)), admin_user()['id'], 'admin');
         ok([], '保存成功');
     }
 
@@ -587,7 +587,7 @@ class AdminController extends Controller
 
     public function saveSiteConfig()
     {
-        $fields = ['site_name','site_title','site_keywords','site_description','footer_intro','icp_info','copyright','tech_support','tech_support_url','theme_color','qq_image','wechat_image','kuaishou_image','site_logo','site_favicon','site_thumbnail','captcha_image'];
+        $fields = ['site_name','site_title','site_keywords','site_description','footer_intro','icp_info','copyright','tech_support','tech_support_url','theme_color','qq_image','wechat_image','kuaishou_image','site_logo','site_favicon','site_thumbnail','captcha_image','site_url','filing_info_url','captcha_type','geetest_id','geetest_key','rainbow_api_url','rainbow_app_id','rainbow_app_key','rainbow_callback','rainbow_methods'];
         foreach ($fields as $f) {
             $v = input($f, '');
             $this->setConfig($f, $v);
@@ -734,6 +734,39 @@ class AdminController extends Controller
         ];
         if (!$data['name']) fail('请输入图片名称');
         if (!$data['image']) fail('请上传图片');
+
+        $imagePath = $data['image'];
+        $fullPath = '';
+        if (strpos($imagePath, 'http') !== 0) {
+            $fullPath = rtrim(config('upload.path'), '/') . '/../' . ltrim($imagePath, '/');
+            $fullPath = realpath($fullPath);
+        }
+        if ($fullPath && is_file($fullPath)) {
+            $maxSize = 512 * 1024;
+            $fileSize = filesize($fullPath);
+            if ($fileSize > $maxSize) {
+                fail('图片文件过大，最大允许 512KB，当前 ' . size_format($fileSize));
+            }
+            $ext = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            $allowExt = ['png', 'svg', 'jpg', 'jpeg', 'webp'];
+            if (!in_array($ext, $allowExt)) {
+                fail('不支持的图片类型，仅允许 PNG/SVG/JPG/WEBP');
+            }
+            if (in_array($ext, ['png', 'jpg', 'jpeg', 'webp'])) {
+                $sizeInfo = @getimagesize($fullPath);
+                if ($sizeInfo) {
+                    [$width, $height] = $sizeInfo;
+                    if ($width < 48 || $height < 48) {
+                        fail("图片尺寸过小 ({$width}x{$height})，建议至少 48x48 像素");
+                    }
+                    $suggestRatio = '建议使用 1:1 比例（当前为 ' . round($width / $height, 2) . ':1）';
+                    if (abs($width - $height) > max($width, $height) * 0.3) {
+                        fail('图片比例差异较大，' . $suggestRatio . '，正方形徽章效果更好');
+                    }
+                }
+            }
+        }
+
         if ($id) {
             db()->update('icp_images', $data, 'id = :id', ['id' => $id]);
         } else {
@@ -903,10 +936,11 @@ class AdminController extends Controller
 
     public function saveMail()
     {
-        $fields = ['mail_enabled','mail_host','mail_port','mail_user','mail_pass','mail_from','mail_from_name','mail_reg_login'];
+        $fields = ['mail_host','mail_user','mail_pass','mail_from','mail_from_name','mail_smtp_secure'];
         foreach ($fields as $f) $this->setConfig($f, input($f, ''));
-        $this->setConfig('mail_enabled', (int)input('mail_enabled', 0));
-        $this->setConfig('mail_reg_login', (int)input('mail_reg_login', 0));
+        $this->setConfig('mail_port', intval(input('mail_port', 0)));
+        $this->setConfig('mail_enabled', intval(input('mail_enabled', 0)));
+        $this->setConfig('mail_reg_login', intval(input('mail_reg_login', 0)));
         log_action('operation', '更新邮箱配置', admin_user()['id'], 'admin');
         ok([], '保存成功');
     }
@@ -934,21 +968,72 @@ class AdminController extends Controller
 
     public function saveOauth()
     {
-        $this->setConfig('oauth_enabled', (int)input('oauth_enabled', 0));
+        $oauthEnabled = intval(input('oauth_enabled', 0));
+        $this->setConfig('oauth_enabled', $oauthEnabled);
+
+        $rainbowMethods = input('rainbow_methods', null);
+        if (is_array($rainbowMethods)) {
+            $this->setConfig('rainbow_methods', implode(',', $rainbowMethods));
+        } else {
+            $this->setConfig('rainbow_methods', trim(input('rainbow_methods', '')));
+        }
+
+        foreach (['rainbow_api_url','rainbow_app_id','rainbow_app_key','rainbow_callback'] as $f) {
+            $this->setConfig($f, trim(input($f, '')));
+        }
         foreach (['oauth_qq_id','oauth_qq_secret','oauth_qq_callback','oauth_wechat_id','oauth_wechat_secret','oauth_wechat_callback','oauth_alipay_id','oauth_alipay_secret','oauth_alipay_callback'] as $f) {
             $this->setConfig($f, trim(input($f, '')));
         }
-        // 若启用聚合登录, 校验至少配置一个平台
-        if ((int)input('oauth_enabled', 0) === 1) {
+        if ($oauthEnabled === 1) {
+            $hasRainbow = trim(input('rainbow_api_url', '')) && trim(input('rainbow_app_id', '')) && trim(input('rainbow_app_key', '')) && trim(input('rainbow_callback', ''));
             $hasQq = input('oauth_qq_id') && input('oauth_qq_secret');
             $hasWx = input('oauth_wechat_id') && input('oauth_wechat_secret');
             $hasAp = input('oauth_alipay_id') && input('oauth_alipay_secret');
-            if (!$hasQq && !$hasWx && !$hasAp) {
-                fail('开启聚合登录需至少完整配置一个平台的 APPID 与 Secret');
+            if (!$hasRainbow && !$hasQq && !$hasWx && !$hasAp) {
+                fail('开启聚合登录需配置 Rainbow 聚合登录参数，或至少完整配置一个传统平台的 APPID 与 Secret');
             }
         }
         log_action('operation', '更新聚合登录配置', admin_user()['id'], 'admin');
         ok([], '保存成功');
+    }
+
+    public function testOauth()
+    {
+        $apiUrl = rtrim(trim(input('rainbow_api_url', '')), '/');
+        $appid = trim(input('rainbow_app_id', ''));
+        if (!$apiUrl || !$appid) {
+            fail('接口地址和 AppID 不能为空');
+        }
+        if (!filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+            fail('接口地址格式不正确');
+        }
+        $testUrl = $apiUrl . '/api.php?appid=' . urlencode($appid);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $testUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Guanbeiyun-Test/1.0');
+        $resp = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        if ($curlErr) {
+            fail('连接失败: ' . $curlErr);
+        }
+        if ($httpCode !== 200) {
+            fail("HTTP 状态码: {$httpCode}, 接口未正常响应");
+        }
+        if ($resp === false || $resp === '') {
+            fail('接口无响应内容');
+        }
+        $json = json_decode($resp, true);
+        if ($json === null) {
+            ok([], '连接成功 (返回非JSON, HTTP 200)');
+        }
+        ok([], '连接成功 (接口响应正常)');
     }
 
     /** 认证申请管理 */
@@ -1107,6 +1192,31 @@ class AdminController extends Controller
             $s['today'] = (int)db()->queryScalar("SELECT COUNT(*) FROM {$p}filings WHERE DATE(created_at)=CURDATE()");
         } catch (Throwable $e) {}
         return $s;
+    }
+
+    public function captcha()
+    {
+        $this->view('admin/captcha', [
+            'pageTitle' => '人机验证配置', 'crumb' => '系统配置 / 人机验证配置',
+            'activeMenu' => 'system', 'activeSub' => 'captcha',
+            'cfg' => site_config(),
+        ], 'admin');
+    }
+
+    public function saveCaptcha()
+    {
+        $fields = ['captcha_type', 'geetest_id', 'geetest_key', 'captcha_length', 'captcha_click_count', 'captcha_difficulty'];
+        foreach ($fields as $f) {
+            $v = input($f, '');
+            if ($f === 'captcha_length') {
+                $v = max(4, min(6, (int)$v));
+            } elseif ($f === 'captcha_click_count') {
+                $v = max(2, min(5, (int)$v));
+            }
+            $this->setConfig($f, $v);
+        }
+        log_action('operation', '更新人机验证配置', admin_user()['id'], 'admin');
+        ok([], '保存成功');
     }
 
     private function setConfig($name, $value)
