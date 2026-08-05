@@ -124,6 +124,7 @@ $router->get('/admin/deletions', 'AdminController@deletions');
 $router->post('/admin/deletion/audit', 'AdminController@auditDeletion');
 // 聊天室管理
 $router->get('/admin/chat', 'AdminController@chat');
+$router->post('/admin/chat/config', 'AdminController@saveChatConfig');
 $router->post('/admin/chat/delete', 'AdminController@deleteChatMessage');
 $router->get('/admin/chat/banned', 'AdminController@chatBanned');
 $router->post('/admin/chat/ban', 'AdminController@banUser');

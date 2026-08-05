@@ -233,6 +233,9 @@
         body = JSON.stringify(opts.json);
       } else if (opts.form) {
         body = opts.form;
+      } else if (opts.data instanceof FormData) {
+        // FormData 直接作为 body, 浏览器自动设置 multipart 边界
+        body = opts.data;
       } else if (opts.data) {
         headers['Content-Type'] = 'application/x-www-form-urlencoded';
         body = Object.keys(opts.data).map(function (k) {

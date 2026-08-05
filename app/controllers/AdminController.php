@@ -361,7 +361,22 @@ class AdminController extends Controller
             'pageTitle' => '聊天室消息管理', 'crumb' => '聊天室 / 消息管理',
             'activeMenu' => 'chat', 'activeSub' => 'chat-messages',
             'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size, 'kw' => $kw,
+            'cfg' => site_config(),
         ], 'admin');
+    }
+
+    /** 保存聊天室设置 (发送频率/刷屏阈值/违禁词策略) */
+    public function saveChatConfig()
+    {
+        $keys = [
+            'chat_rate_limit', 'chat_spam_threshold', 'chat_spam_ban_min',
+            'chat_violation_window', 'chat_violation_limit', 'chat_violation_ban_min',
+        ];
+        foreach ($keys as $k) {
+            $this->setConfig($k, (int)input($k, 0));
+        }
+        log_action('operation', '更新聊天室设置', admin_user()['id'], 'admin');
+        ok([], '保存成功');
     }
 
     public function deleteChatMessage()
