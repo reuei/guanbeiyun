@@ -31,6 +31,35 @@ $avatar = $user['avatar'] ?? '';
     </form>
   </div>
 </div>
+
+<div class="panel" style="max-width:720px;margin-top:18px;border-color:var(--danger,#ef4444);">
+  <div class="panel-head"><span class="title text-danger">账号注销</span></div>
+  <div class="panel-body">
+    <p class="text-muted text-sm" style="margin-bottom:16px;">如果您不再需要使用本账号，可申请注销。注销后将无法恢复，请谨慎操作。</p>
+    <button class="btn btn-danger" onclick="gbModal.open('deletionModal')">申请注销账号</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deletionModal">
+  <div class="modal-box">
+    <div class="modal-head"><h3>申请注销账号</h3><span class="icon-btn" onclick="gbModal.close('deletionModal')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span></div>
+    <div class="modal-body">
+      <div class="card card-body" style="background:var(--danger-bg,#fef2f2);border-color:var(--danger,#ef4444);color:var(--text);margin-bottom:16px;font-size:13px;">
+        注销后将无法恢复，请谨慎操作。一个用户一个月只能申请一次注销。
+      </div>
+      <form id="deletionForm" onsubmit="return submitDeletion(event)">
+        <div class="form-group">
+          <label class="form-label">注销理由 <span class="req">*</span></label>
+          <textarea class="form-control" name="reason" id="deletionReason" rows="4" required minlength="5" placeholder="请填写注销理由（至少5个字）"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="gbModal.close('deletionModal')">取消</button>
+      <button class="btn btn-danger" id="deletionSubmitBtn" onclick="document.getElementById('deletionForm').requestSubmit()">提交申请</button>
+    </div>
+  </div>
+</div>
 <script>
 function uploadAvatar(){document.getElementById('avatarInput').click();}
 function doUploadAvatar(){
@@ -45,4 +74,14 @@ function doUploadAvatar(){
 function saveProfile(e){e.preventDefault();var d={};new FormData(e.target).forEach(function(v,k){d[k]=v;});
   var b=document.getElementById('saveBtn');b.disabled=true;b.innerHTML='<span class="gb-loading gb-loading-sm"></span> 保存中';
   gbAjax({method:'POST',url:'<?php echo site_url('user/profile/update'); ?>',data:d,success:function(r){if(r.code===0)gbToast.success(r.msg);},complete:function(){b.disabled=false;b.innerHTML='保存修改';}});return false;}
+function submitDeletion(e){e.preventDefault();
+  var reason=(document.getElementById('deletionReason').value||'').trim();
+  if(!reason){gbToast.error('请填写注销理由');return false;}
+  if(reason.length<5){gbToast.error('注销理由至少5个字');return false;}
+  var b=document.getElementById('deletionSubmitBtn');b.disabled=true;var oh=b.innerHTML;b.innerHTML='<span class="gb-loading gb-loading-sm"></span> 提交中';
+  gbAjax({method:'POST',url:'<?php echo site_url('user/deletion/apply'); ?>',data:{reason:reason},success:function(r){
+    if(r&&r.code===0){gbToast.success(r.msg||'注销申请已提交');gbModal.close('deletionModal');document.getElementById('deletionForm').reset();}
+  },complete:function(){b.disabled=false;b.innerHTML=oh;}});
+  return false;
+}
 </script>

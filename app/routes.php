@@ -27,13 +27,25 @@ $router->post('/feedback', 'FeedbackController@submit');
 $router->get('/report', 'FeedbackController@report');
 $router->post('/report', 'FeedbackController@submitReport');
 $router->get('/article/{id}', 'ArticleController@show');
+// 公示独立页面
+$router->get('/publicity/filing', 'PublicityController@filing');
+$router->get('/publicity/invalid', 'PublicityController@invalid');
+// 聊天室
+$router->get('/chat', 'ChatController@index');
+$router->post('/chat/messages', 'ChatController@messages');
+$router->post('/chat/send', 'ChatController@send');
+$router->post('/chat/history', 'ChatController@history');
+// 个人中心 (公开)
+$router->get('/u/{id}', 'UserController@profileView');
 
 // ====== 用户中心 ======
 $router->get('/user', 'UserController@index');
 $router->get('/user/dashboard', 'UserController@dashboard');
 $router->get('/user/filings', 'UserController@filings');
 $router->post('/user/filing/apply', 'UserController@applyFiling');
+$router->get('/user/filing/detail', 'UserController@filingDetail');
 $router->get('/user/feedback', 'UserController@feedbackList');
+$router->get('/user/feedback/detail', 'UserController@feedbackDetail');
 $router->get('/user/tickets', 'UserController@tickets');
 $router->post('/user/ticket/create', 'UserController@createTicket');
 $router->post('/user/ticket/reply', 'UserController@replyTicket');
@@ -41,11 +53,18 @@ $router->get('/user/ticket/detail', 'UserController@ticketDetail');
 $router->get('/user/profile', 'UserController@profile');
 $router->post('/user/profile/update', 'UserController@updateProfile');
 $router->post('/user/avatar/upload', 'UserController@uploadAvatar');
+$router->post('/user/bg/upload', 'UserController@uploadBg');
+$router->post('/user/license/upload', 'UserController@uploadLicense');
 $router->get('/user/certification', 'UserController@certification');
 $router->post('/user/certification/apply', 'UserController@applyCert');
 $router->get('/user/partner', 'UserController@partner');
 $router->post('/user/partner/apply', 'UserController@applyPartner');
 $router->get('/user/logs', 'UserController@logs');
+$router->get('/user/notifications', 'UserController@notifications');
+$router->post('/user/notification/read', 'UserController@readNotification');
+$router->post('/user/notification/read_all', 'UserController@readAllNotifications');
+$router->get('/user/notifications/unread_count', 'UserController@unreadCount');
+$router->post('/user/deletion/apply', 'UserController@applyDeletion');
 
 // ====== 后台管理 ======
 $router->get('/admin', 'AdminController@index');
@@ -59,11 +78,13 @@ $router->post('/admin/user/toggle', 'AdminController@toggleUser');
 $router->get('/admin/ticket/detail', 'AdminController@ticketDetail');
 $router->post('/admin/feedback/reply', 'AdminController@replyFeedback');
 $router->get('/admin/filings', 'AdminController@filings');
+$router->get('/admin/filing/detail', 'AdminController@filingDetail');
 $router->post('/admin/filing/audit', 'AdminController@auditFiling');
 $router->get('/admin/applications', 'AdminController@applications');
 $router->post('/admin/application/audit', 'AdminController@auditApp');
 $router->get('/admin/feedbacks', 'AdminController@feedbacks');
 $router->get('/admin/reports', 'AdminController@reports');
+$router->get('/admin/feedback/detail', 'AdminController@feedbackDetail');
 $router->get('/admin/tickets', 'AdminController@tickets');
 $router->post('/admin/ticket/reply', 'AdminController@replyTicket');
 $router->get('/admin/siteconfig', 'AdminController@siteConfig');
@@ -83,12 +104,33 @@ $router->post('/admin/mail/save', 'AdminController@saveMail');
 $router->post('/admin/mail/test', 'AdminController@testMail');
 $router->get('/admin/oauth', 'AdminController@oauth');
 $router->post('/admin/oauth/save', 'AdminController@saveOauth');
+$router->get('/admin/maintenance', 'AdminController@maintenance');
+$router->post('/admin/maintenance/save', 'AdminController@saveMaintenance');
 $router->get('/admin/cert-apply', 'AdminController@certApply');
 $router->get('/admin/partner-apply', 'AdminController@partnerApply');
 $router->post('/admin/apply/audit', 'AdminController@auditCertApp');
+// 公示管理 (分开)
 $router->get('/admin/publicity', 'AdminController@publicity');
+$router->get('/admin/publicity/filing', 'AdminController@publicityFiling');
+$router->get('/admin/publicity/invalid', 'AdminController@publicityInvalid');
 $router->post('/admin/publicity/save', 'AdminController@savePublicity');
 $router->post('/admin/publicity/delete', 'AdminController@deletePublicity');
+// 认证图片配置
+$router->get('/admin/certifications', 'AdminController@certifications');
+$router->post('/admin/certification/save', 'AdminController@saveCertification');
+$router->post('/admin/certification/delete', 'AdminController@deleteCertification');
+// 注销申请管理
+$router->get('/admin/deletions', 'AdminController@deletions');
+$router->post('/admin/deletion/audit', 'AdminController@auditDeletion');
+// 聊天室管理
+$router->get('/admin/chat', 'AdminController@chat');
+$router->post('/admin/chat/delete', 'AdminController@deleteChatMessage');
+$router->get('/admin/chat/banned', 'AdminController@chatBanned');
+$router->post('/admin/chat/ban', 'AdminController@banUser');
+$router->post('/admin/chat/unban', 'AdminController@unbanUser');
+$router->get('/admin/chat/words', 'AdminController@chatWords');
+$router->post('/admin/chat/word/save', 'AdminController@saveChatWord');
+$router->post('/admin/chat/word/delete', 'AdminController@deleteChatWord');
 $router->get('/admin/logs/system', 'AdminController@systemLogs');
 $router->get('/admin/logs/login', 'AdminController@loginLogs');
 $router->get('/admin/logs/operation', 'AdminController@operationLogs');

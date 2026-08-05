@@ -43,46 +43,64 @@ $activeSub = $activeSub ?? '';
       </div>
       <!-- 用户管理 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='users'?'active':'' ?> <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='users'?'active':'' ?> <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets','deletions'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>用户管理</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['users','filings','applications','feedbacks','reports','tickets','deletions'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='users'?'active':'' ?>" href="<?php echo site_url('admin/users'); ?>">用户管理</a>
           <a class="menu-item <?php echo $activeSub==='filings'?'active':'' ?>" href="<?php echo site_url('admin/filings'); ?>">备案管理</a>
           <a class="menu-item <?php echo $activeSub==='applications'?'active':'' ?>" href="<?php echo site_url('admin/applications'); ?>">申请管理</a>
           <a class="menu-item <?php echo $activeSub==='feedbacks'?'active':'' ?>" href="<?php echo site_url('admin/feedbacks'); ?>">反馈管理</a>
           <a class="menu-item <?php echo $activeSub==='reports'?'active':'' ?>" href="<?php echo site_url('admin/reports'); ?>">举报管理</a>
           <a class="menu-item <?php echo $activeSub==='tickets'?'active':'' ?>" href="<?php echo site_url('admin/tickets'); ?>">工单管理</a>
+          <a class="menu-item <?php echo $activeSub==='deletions'?'active':'' ?>" href="<?php echo site_url('admin/deletions'); ?>">注销申请</a>
         </div>
       </div>
       <!-- 系统配置 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='system'?'active':'' ?> <?php echo in_array($activeSub,['siteconfig','announcement','articles','mail','oauth'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='system'?'active':'' ?> <?php echo in_array($activeSub,['siteconfig','announcement','articles','mail','oauth','maintenance'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>系统配置</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['siteconfig','announcement','articles','mail','oauth'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['siteconfig','announcement','articles','mail','oauth','maintenance'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='siteconfig'?'active':'' ?>" href="<?php echo site_url('admin/siteconfig'); ?>">网站配置</a>
           <a class="menu-item <?php echo $activeSub==='announcement'?'active':'' ?>" href="<?php echo site_url('admin/announcement'); ?>">公告配置</a>
           <a class="menu-item <?php echo $activeSub==='articles'?'active':'' ?>" href="<?php echo site_url('admin/articles'); ?>">文章管理</a>
           <a class="menu-item <?php echo $activeSub==='mail'?'active':'' ?>" href="<?php echo site_url('admin/mail'); ?>">邮箱配置</a>
           <a class="menu-item <?php echo $activeSub==='oauth'?'active':'' ?>" href="<?php echo site_url('admin/oauth'); ?>">聚合登录配置</a>
+          <a class="menu-item <?php echo $activeSub==='maintenance'?'active':'' ?>" href="<?php echo site_url('admin/maintenance'); ?>">网站维护</a>
         </div>
       </div>
       <!-- 认证管理 -->
       <div class="menu-group">
-        <div class="menu-item has-sub <?php echo $activeMenu==='auth'?'active':'' ?> <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity'])?'expanded':'' ?>">
+        <div class="menu-item has-sub <?php echo $activeMenu==='auth'?'active':'' ?> <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity','certifications','pub-filing','pub-invalid'])?'expanded':'' ?>">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.5 0 4.76 1.02 6.39 2.66"/></svg>
           <span>认证管理</span>
           <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
-        <div class="menu-sub <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity'])?'open':'' ?>">
+        <div class="menu-sub <?php echo in_array($activeSub,['cert-apply','partner-apply','publicity','certifications','pub-filing','pub-invalid'])?'open':'' ?>">
           <a class="menu-item <?php echo $activeSub==='cert-apply'?'active':'' ?>" href="<?php echo site_url('admin/cert-apply'); ?>">申请管理</a>
           <a class="menu-item <?php echo $activeSub==='partner-apply'?'active':'' ?>" href="<?php echo site_url('admin/partner-apply'); ?>">合作方申请</a>
           <a class="menu-item <?php echo $activeSub==='publicity'?'active':'' ?>" href="<?php echo site_url('admin/publicity'); ?>">首页公示管理</a>
+          <a class="menu-item <?php echo $activeSub==='certifications'?'active':'' ?>" href="<?php echo site_url('admin/certifications'); ?>">认证图片配置</a>
+          <a class="menu-item <?php echo $activeSub==='pub-filing'?'active':'' ?>" href="<?php echo site_url('admin/publicity/filing'); ?>">备案公示管理</a>
+          <a class="menu-item <?php echo $activeSub==='pub-invalid'?'active':'' ?>" href="<?php echo site_url('admin/publicity/invalid'); ?>">失效网站公示</a>
+        </div>
+      </div>
+      <!-- 聊天室 -->
+      <div class="menu-group">
+        <div class="menu-item has-sub <?php echo $activeMenu==='chat'?'active':'' ?> <?php echo in_array($activeSub,['chat-messages','chat-banned','chat-words'])?'expanded':'' ?>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>聊天室</span>
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div class="menu-sub <?php echo in_array($activeSub,['chat-messages','chat-banned','chat-words'])?'open':'' ?>">
+          <a class="menu-item <?php echo $activeSub==='chat-messages'?'active':'' ?>" href="<?php echo site_url('admin/chat'); ?>">消息管理</a>
+          <a class="menu-item <?php echo $activeSub==='chat-banned'?'active':'' ?>" href="<?php echo site_url('admin/chat/banned'); ?>">禁言用户</a>
+          <a class="menu-item <?php echo $activeSub==='chat-words'?'active':'' ?>" href="<?php echo site_url('admin/chat/words'); ?>">违禁词</a>
         </div>
       </div>
       <!-- 日志管理 -->

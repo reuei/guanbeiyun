@@ -105,7 +105,7 @@ function saveCfg(e){
   var data={};fd.forEach(function(v,k){data[k]=v;});
   var btn=document.getElementById('saveBtn');btn.disabled=true;btn.innerHTML='<span class="gb-loading gb-loading-sm"></span> 保存中...';
   gbAjax({method:'POST',url:'<?php echo site_url('admin/siteconfig/save'); ?>',data:data,
-  success:function(res){if(res.code===0)gbToast.success(res.msg);},
+  success:function(res){if(res.code===0){gbToast.success(res.msg);setTimeout(function(){location.reload();},600);}},
   complete:function(){btn.disabled=false;btn.innerHTML='保存配置';}});
   return false;
 }

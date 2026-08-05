@@ -38,7 +38,7 @@ function cfgm($k, $d='') { global $cfg; return $cfg[$k] ?? $d; }
 <script>
 function saveMail(e){e.preventDefault();var d={};new FormData(e.target).forEach(function(v,k){d[k]=v;});
   var b=document.getElementById('saveBtn');b.disabled=true;b.innerHTML='<span class="gb-loading gb-loading-sm"></span> 保存中';
-  gbAjax({method:'POST',url:'<?php echo site_url('admin/mail/save'); ?>',data:d,success:function(r){if(r.code===0)gbToast.success(r.msg);},complete:function(){b.disabled=false;b.innerHTML='保存配置';}});return false;}
+  gbAjax({method:'POST',url:'<?php echo site_url('admin/mail/save'); ?>',data:d,success:function(r){if(r.code===0){gbToast.success(r.msg);setTimeout(function(){location.reload();},600);}},complete:function(){b.disabled=false;b.innerHTML='保存配置';}});return false;}
 function testMail(){var to=document.getElementById('testMail').value.trim();if(!to){gbToast.warning('请输入收件邮箱');return;}
   gbAjax({method:'POST',url:'<?php echo site_url('admin/mail/test'); ?>',data:{to:to},success:function(r){}});}
 </script>

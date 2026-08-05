@@ -64,16 +64,42 @@ class UserController extends Controller
     public function applyFiling()
     {
         $u = current_user();
+        // v3 两步备案: 必要信息(邮箱/手机号/网址/网站名称/备注) + 个人/企业资质
+        $ownerType = (int)input('owner_type', 1);
+        $ownerName = trim(input('owner_name', ''));
+        $ownerId   = trim(input('owner_id', ''));
+        $ownerPhone = trim(input('owner_phone', ''));
+        $ownerEmail = trim(input('owner_email', ''));
+        $ownerAddress = trim(input('owner_address', ''));
+        $licenseImg = trim(input('license_img', ''));
+        $siteUrl = trim(input('site_url', ''));
+
+        // 基础必填
+        if (!$ownerEmail) fail('邮箱必填');
+        if (!filter_var($ownerEmail, FILTER_VALIDATE_EMAIL)) fail('邮箱格式不正确');
+        if (!$ownerPhone) fail('手机号必填');
+        if (!preg_match('/^1[3-9]\d{9}$/', $ownerPhone)) fail('手机号格式不正确');
+        if (!$siteUrl) fail('网址必填');
+        if (!$ownerName) fail($ownerType === 2 ? '姓名必填' : '企业名称必填');
+
+        // 企业备案要求
+        if ($ownerType === 1) {
+            if (!$ownerAddress) fail('企业地址必填');
+            if (!$licenseImg) fail('请上传企业资质/营业执照图片');
+        }
+
         $data = [
             'user_id' => $u['id'],
             'site_name' => trim(input('site_name', '')),
             'site_domain' => trim(input('site_domain', '')),
-            'site_url' => trim(input('site_url', '')),
-            'owner_name' => trim(input('owner_name', '')),
-            'owner_type' => (int)input('owner_type', 1),
-            'owner_id' => trim(input('owner_id', '')),
-            'owner_phone' => trim(input('owner_phone', '')),
-            'owner_email' => trim(input('owner_email', '')),
+            'site_url' => $siteUrl,
+            'owner_name' => $ownerName,
+            'owner_type' => $ownerType,
+            'owner_id' => $ownerId,
+            'owner_phone' => $ownerPhone,
+            'owner_email' => $ownerEmail,
+            'owner_address' => $ownerAddress,
+            'license_img' => $licenseImg,
             'server_ip' => trim(input('server_ip', '')),
             'content_type' => trim(input('content_type', '')),
             'language' => trim(input('language', '中文')),
@@ -81,11 +107,190 @@ class UserController extends Controller
             'status' => 0,
             'created_at' => date('Y-m-d H:i:s'),
         ];
-        if (!$data['site_name'] || !$data['site_domain'] || !$data['owner_name']) fail('网站名称、域名、主办单位必填');
+        if (!$data['site_name']) fail('网站名称必填');
+        if (!$data['site_domain']) fail('网站域名必填');
         if (!preg_match('/^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/', $data['site_domain'])) fail('域名格式不正确');
+        // 备案号由后台审核通过后自动分配 (管ICP备xxxxxxxx号)
         db()->insert('filings', $data);
         log_op("提交备案申请: {$data['site_name']} ({$data['site_domain']})");
-        ok([], '备案申请已提交，等待审核');
+        ok([], '备案申请已提交，等待审核。审核通过后将自动分配备案号 (格式: 管ICP备xxxxxxxx号)');
+    }
+
+    /** 用户查看自己的备案详情 */
+    public function filingDetail()
+    {
+        $u = current_user();
+        $id = (int)input('id', 0);
+        $f = db()->queryOne("SELECT * FROM " . db()->table('filings') . " WHERE id = ? AND user_id = ?", [$id, $u['id']]);
+        if (!$f) fail('备案记录不存在');
+        ok(['filing' => $f]);
+    }
+
+    /** 用户查看自己的反馈详情 */
+    public function feedbackDetail()
+    {
+        $u = current_user();
+        $id = (int)input('id', 0);
+        $fb = db()->queryOne("SELECT * FROM " . db()->table('feedbacks') . " WHERE id = ? AND user_id = ?", [$id, $u['id']]);
+        if (!$fb) fail('记录不存在');
+        ok(['feedback' => $fb]);
+    }
+
+    /** 上传背景图 */
+    public function uploadBg()
+    {
+        $u = current_user();
+        if (empty($_FILES['file'])) fail('请选择文件');
+        $file = $_FILES['file'];
+        if ($file['error'] !== UPLOAD_ERR_OK) fail('上传失败');
+        if ($file['size'] > config('upload.max_size')) fail('文件过大');
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, config('upload.allow'))) fail('不支持的文件类型');
+        $dir = config('upload.path') . '/bg';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        $name = 'bg_' . $u['id'] . '_' . time() . '.' . $ext;
+        $path = $dir . '/' . $name;
+        if (!move_uploaded_file($file['tmp_name'], $path)) fail('保存失败');
+        $rel = 'uploads/bg/' . $name;
+        db()->update('users', ['bg_image' => $rel], 'id = :id', ['id' => $u['id']]);
+        $_SESSION['gb_user']['bg_image'] = $rel;
+        ok(['url' => $rel, 'full' => asset($rel)], '上传成功');
+    }
+
+    /** 上传企业资质图片 (备案用) */
+    public function uploadLicense()
+    {
+        $u = current_user();
+        if (empty($_FILES['file'])) fail('请选择文件');
+        $file = $_FILES['file'];
+        if ($file['error'] !== UPLOAD_ERR_OK) fail('上传失败');
+        if ($file['size'] > config('upload.max_size')) fail('文件过大');
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, config('upload.allow'))) fail('不支持的文件类型');
+        $dir = config('upload.path') . '/license';
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        $name = 'lic_' . $u['id'] . '_' . time() . '.' . $ext;
+        $path = $dir . '/' . $name;
+        if (!move_uploaded_file($file['tmp_name'], $path)) fail('保存失败');
+        $rel = 'uploads/license/' . $name;
+        ok(['url' => $rel, 'full' => asset($rel)], '上传成功');
+    }
+
+    /** 通知列表页 */
+    public function notifications()
+    {
+        $u = current_user();
+        [$page, $size, $offset] = page_params();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('notifications') . " WHERE user_id=0 OR user_id=?", [$u['id']]);
+        $rows = db()->query("SELECT * FROM " . db()->table('notifications') . " WHERE user_id=0 OR user_id=? ORDER BY id DESC LIMIT $offset,$size", [$u['id']]);
+        // 标记已读状态
+        $readIds = [];
+        try {
+            $reads = db()->query("SELECT notification_id FROM " . db()->table('notification_reads') . " WHERE user_id=?", [$u['id']]);
+            foreach ($reads as $r) $readIds[$r['notification_id']] = 1;
+        } catch (Throwable $e) {}
+        foreach ($rows as &$r) {
+            $r['is_read'] = ($r['user_id'] == $u['id']) ? $r['is_read'] : (isset($readIds[$r['id']]) ? 1 : 0);
+        }
+        unset($r);
+        $this->view('user/notifications', [
+            'pageTitle' => '消息通知', 'crumb' => '工作台 / 消息通知',
+            'activeMenu' => 'workbench', 'activeSub' => 'uc-notifications',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'user');
+    }
+
+    public function readNotification()
+    {
+        $u = current_user();
+        $id = (int)input('id', 0);
+        $n = db()->queryOne("SELECT * FROM " . db()->table('notifications') . " WHERE id = ?", [$id]);
+        if (!$n) fail('通知不存在');
+        if ($n['user_id'] == $u['id']) {
+            db()->update('notifications', ['is_read' => 1], 'id = :id', ['id' => $id]);
+        } else {
+            // 全体通知, 写入 reads 表
+            try {
+                db()->insert('notification_reads', ['notification_id' => $id, 'user_id' => $u['id'], 'read_at' => date('Y-m-d H:i:s')]);
+            } catch (Throwable $e) {}
+        }
+        ok([], '已标记已读');
+    }
+
+    public function readAllNotifications()
+    {
+        $u = current_user();
+        $p = db()->prefix();
+        db()->execute("UPDATE {$p}notifications SET is_read=1 WHERE user_id=?", [$u['id']]);
+        // 全体通知写入 reads
+        $rows = db()->query("SELECT id FROM {$p}notifications WHERE user_id=0");
+        foreach ($rows as $r) {
+            try {
+                db()->insert('notification_reads', ['notification_id' => $r['id'], 'user_id' => $u['id'], 'read_at' => date('Y-m-d H:i:s')]);
+            } catch (Throwable $e) {}
+        }
+        ok([], '已全部标记已读');
+    }
+
+    public function unreadCount()
+    {
+        $u = current_user();
+        ok(['count' => unread_notification_count($u['id'])]);
+    }
+
+    /** 申请账号注销 (一个用户一个月只能一次) */
+    public function applyDeletion()
+    {
+        $u = current_user();
+        $reason = trim(input('reason', ''));
+        if (!$reason) fail('请填写注销理由');
+        if (mb_strlen($reason) < 5) fail('注销理由至少5个字');
+        // 一个月内只能申请一次
+        $p = db()->prefix();
+        $recent = db()->queryOne(
+            "SELECT id, created_at FROM {$p}account_deletions WHERE user_id = ? AND created_at >= (NOW() - INTERVAL 1 MONTH) ORDER BY id DESC LIMIT 1",
+            [$u['id']]
+        );
+        if ($recent) fail('一个用户一个月只能申请一次注销，最近申请时间：' . $recent['created_at']);
+        db()->insert('account_deletions', [
+            'user_id' => $u['id'],
+            'reason' => $reason,
+            'status' => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        log_op('提交账号注销申请');
+        ok([], '注销申请已提交，等待审核');
+    }
+
+    /** 公开个人中心 GET /u/{id} */
+    public function profileView($id)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            http_response_code(404);
+            require __DIR__ . '/../views/errors/404.php';
+            return;
+        }
+        $user = db()->queryOne("SELECT id, username, avatar, bg_image, bio, email, phone, created_at FROM " . db()->table('users') . " WHERE id = ? AND status = 1", [$id]);
+        if (!$user) {
+            http_response_code(404);
+            require __DIR__ . '/../views/errors/404.php';
+            return;
+        }
+        $certs = user_certifications($id);
+        // 用户已通过备案
+        $filings = [];
+        try {
+            $filings = db()->query("SELECT icp_no, site_name, site_domain, site_url FROM " . db()->table('filings') . " WHERE user_id = ? AND status = 1 ORDER BY id DESC", [$id]);
+        } catch (Throwable $e) {}
+        $this->view('user/profile_view', [
+            'pageTitle' => $user['username'] . ' 的个人中心',
+            'active' => 'profile',
+            'profileUser' => $user,
+            'certs' => $certs,
+            'filings' => $filings,
+            'hitokoto' => hitokoto(),
+        ]);
     }
 
     /** 反馈与举报管理 */

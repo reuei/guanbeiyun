@@ -168,19 +168,280 @@ class AdminController extends Controller
         $filing = db()->queryOne("SELECT * FROM " . db()->table('filings') . " WHERE id = ?", [$id]);
         if (!$filing) fail('备案记录不存在');
         $data = ['status' => $status, 'audit_remark' => $remark, 'audited_at' => date('Y-m-d H:i:s'), 'audited_by' => admin_user()['id'], 'updated_at' => date('Y-m-d H:i:s')];
-        if ($status === 1 && $icpNo) $data['icp_no'] = $icpNo;
-        elseif ($status === 1 && !$filing['icp_no']) $data['icp_no'] = $this->genIcpNo();
+        // 通过审核自动分配 管ICP备xxxxxxxx号 格式的备案号 (确保不重复)
+        if ($status === 1) {
+            if ($icpNo) {
+                $data['icp_no'] = $icpNo;
+            } elseif (!$filing['icp_no']) {
+                $data['icp_no'] = gen_icp_no();
+            }
+        }
         db()->update('filings', $data, 'id = :id', ['id' => $id]);
+        // 通过审核后自动同步到备案公示
+        if ($status === 1) {
+            $this->syncFilingPublicity($id, $filing, $data['icp_no'] ?? $filing['icp_no']);
+        }
         log_action('operation', "审核备案 #{$id} 状态={$status}", admin_user()['id'], 'admin');
         ok([], '审核完成');
     }
 
-    private function genIcpNo()
+    /** 备案通过后同步到公示表 (type=filing) */
+    private function syncFilingPublicity($filingId, $filing, $icpNo)
     {
-        $p = db()->prefix();
-        $year = date('Y');
-        $seq = (int)db()->queryScalar("SELECT COUNT(*) FROM {$p}filings WHERE status=1") + 1000;
-        return "京ICP备{$year}{$seq}号";
+        try {
+            $p = db()->prefix();
+            $exists = db()->queryOne("SELECT id FROM {$p}publicity WHERE type='filing' AND title = ?", ['备案#' . $filingId]);
+            $data = [
+                'type'    => 'filing',
+                'title'   => '备案#' . $filingId,
+                'content' => $filing['site_name'] . ' - ' . $filing['site_domain'],
+                'link'    => $filing['site_url'] ?: ('http://' . $filing['site_domain']),
+                'icp_no'  => $icpNo,
+                'user_id' => $filing['user_id'],
+                'status'  => 1,
+                'sort'    => 0,
+            ];
+            if ($exists) {
+                db()->update('publicity', $data, 'id = :id', ['id' => $exists['id']]);
+            } else {
+                $data['created_at'] = date('Y-m-d H:i:s');
+                db()->insert('publicity', $data);
+            }
+        } catch (Throwable $e) {}
+    }
+
+    /** 备案详情 (后台) */
+    public function filingDetail()
+    {
+        $id = (int)input('id', 0);
+        $f = db()->queryOne("SELECT f.*, u.username, u.avatar FROM " . db()->table('filings') . " f LEFT JOIN " . db()->table('users') . " u ON u.id=f.user_id WHERE f.id = ?", [$id]);
+        if (!$f) fail('备案记录不存在');
+        ok(['filing' => $f]);
+    }
+
+    /** 反馈详情 (后台) */
+    public function feedbackDetail()
+    {
+        $id = (int)input('id', 0);
+        $fb = db()->queryOne("SELECT * FROM " . db()->table('feedbacks') . " WHERE id = ?", [$id]);
+        if (!$fb) fail('记录不存在');
+        ok(['feedback' => $fb]);
+    }
+
+    /** 网站维护配置 */
+    public function maintenance()
+    {
+        $this->view('admin/maintenance', [
+            'pageTitle' => '网站维护', 'crumb' => '系统配置 / 网站维护',
+            'activeMenu' => 'system', 'activeSub' => 'maintenance',
+            'cfg' => site_config(),
+        ], 'admin');
+    }
+
+    public function saveMaintenance()
+    {
+        $this->setConfig('maintenance_enabled', (int)input('maintenance_enabled', 0));
+        $this->setConfig('maintenance_title', trim(input('maintenance_title', '')));
+        $this->setConfig('maintenance_content', input('maintenance_content', ''));
+        $this->setConfig('maintenance_recover_time', trim(input('maintenance_recover_time', '')));
+        log_action('operation', '更新网站维护配置 enabled=' . (int)input('maintenance_enabled', 0), admin_user()['id'], 'admin');
+        ok([], '保存成功');
+    }
+
+    /** 备案公示管理 (单独页) */
+    public function publicityFiling()
+    {
+        $this->listPublicity('filing', '备案公示管理', 'pub-filing');
+    }
+    /** 失效网站公示管理 (单独页) */
+    public function publicityInvalid()
+    {
+        $this->listPublicity('invalid', '失效网站公示管理', 'pub-invalid');
+    }
+    private function listPublicity($type, $title, $sub)
+    {
+        [$page, $size, $offset] = page_params();
+        $kw = trim(input('kw', ''));
+        $where = "type = ?"; $params = [$type];
+        if ($kw) { $where .= " AND (title LIKE ? OR content LIKE ? OR icp_no LIKE ?)"; $p = "%$kw%"; array_push($params, $p, $p, $p); }
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('publicity') . " WHERE $where", $params);
+        $rows = db()->query("SELECT p.*, u.username FROM " . db()->table('publicity') . " p LEFT JOIN " . db()->table('users') . " u ON u.id=p.user_id WHERE $where ORDER BY p.sort DESC, p.id DESC LIMIT $offset,$size", $params);
+        $this->view('admin/publicity_list', [
+            'pageTitle' => $title, 'crumb' => '认证管理 / ' . $title,
+            'activeMenu' => 'auth', 'activeSub' => $sub,
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size, 'kw' => $kw, 'pubType' => $type,
+        ], 'admin');
+    }
+
+    /** 认证图片配置列表 */
+    public function certifications()
+    {
+        [$page, $size, $offset] = page_params();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('certifications'));
+        $rows = db()->query("SELECT * FROM " . db()->table('certifications') . " ORDER BY sort DESC, id DESC LIMIT $offset,$size");
+        $this->view('admin/certifications', [
+            'pageTitle' => '认证图片配置', 'crumb' => '认证管理 / 认证图片配置',
+            'activeMenu' => 'auth', 'activeSub' => 'certifications',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'admin');
+    }
+
+    public function saveCertification()
+    {
+        $id = (int)input('id', 0);
+        $data = [
+            'name'       => trim(input('name', '')),
+            'image'      => trim(input('image', '')),
+            'info'       => trim(input('info', '')),
+            'icon_style' => trim(input('icon_style', 'default')),
+            'sort'       => (int)input('sort', 0),
+            'status'     => (int)input('status', 1),
+        ];
+        if (!$data['name']) fail('请输入认证名称');
+        if ($id) {
+            db()->update('certifications', $data, 'id = :id', ['id' => $id]);
+        } else {
+            $data['created_at'] = date('Y-m-d H:i:s');
+            db()->insert('certifications', $data);
+        }
+        log_action('operation', "保存认证配置 {$data['name']}", admin_user()['id'], 'admin');
+        ok([], '保存成功');
+    }
+
+    public function deleteCertification()
+    {
+        $id = (int)input('id', 0);
+        db()->delete('certifications', 'id = ?', [$id]);
+        ok([], '已删除');
+    }
+
+    /** 账号注销申请管理 */
+    public function deletions()
+    {
+        [$page, $size, $offset] = page_params();
+        $status = input('status', '');
+        $where = '1=1'; $params = [];
+        if ($status !== '') { $where .= " AND d.status = ?"; $params[] = (int)$status; }
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('account_deletions') . " d WHERE $where", $params);
+        $rows = db()->query("SELECT d.*, u.username, u.email FROM " . db()->table('account_deletions') . " d LEFT JOIN " . db()->table('users') . " u ON u.id=d.user_id WHERE $where ORDER BY d.id DESC LIMIT $offset,$size", $params);
+        $this->view('admin/deletions', [
+            'pageTitle' => '注销申请管理', 'crumb' => '用户管理 / 注销申请管理',
+            'activeMenu' => 'users', 'activeSub' => 'deletions',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size, 'status' => $status,
+        ], 'admin');
+    }
+
+    public function auditDeletion()
+    {
+        $id = (int)input('id', 0);
+        $status = (int)input('status', 0);
+        $remark = trim(input('audit_remark', ''));
+        if (!in_array($status, [1, 2])) fail('状态无效');
+        $del = db()->queryOne("SELECT * FROM " . db()->table('account_deletions') . " WHERE id = ?", [$id]);
+        if (!$del) fail('申请不存在');
+        db()->update('account_deletions', ['status' => $status, 'audit_remark' => $remark, 'audited_at' => date('Y-m-d H:i:s'), 'audited_by' => admin_user()['id']], 'id = :id', ['id' => $id]);
+        // 通过则禁用用户
+        if ($status === 1) {
+            db()->update('users', ['status' => 0, 'updated_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => $del['user_id']]);
+        }
+        log_action('operation', "审核注销申请 #{$id} 状态={$status}", admin_user()['id'], 'admin');
+        ok([], '审核完成');
+    }
+
+    /** 聊天室消息管理 */
+    public function chat()
+    {
+        [$page, $size, $offset] = page_params();
+        $kw = trim(input('kw', ''));
+        $where = '1=1'; $params = [];
+        if ($kw) { $where .= " AND (m.content LIKE ? OR u.username LIKE ?)"; $p = "%$kw%"; array_push($params, $p, $p); }
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('chat_messages') . " m WHERE $where", $params);
+        $rows = db()->query("SELECT m.*, u.username, u.avatar FROM " . db()->table('chat_messages') . " m LEFT JOIN " . db()->table('users') . " u ON u.id=m.user_id WHERE $where ORDER BY m.id DESC LIMIT $offset,$size", $params);
+        $this->view('admin/chat_messages', [
+            'pageTitle' => '聊天室消息管理', 'crumb' => '聊天室 / 消息管理',
+            'activeMenu' => 'chat', 'activeSub' => 'chat-messages',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size, 'kw' => $kw,
+        ], 'admin');
+    }
+
+    public function deleteChatMessage()
+    {
+        $id = (int)input('id', 0);
+        if (!$id) fail('参数错误');
+        db()->update('chat_messages', ['is_recalled' => 1], 'id = :id', ['id' => $id]);
+        log_action('operation', "撤回聊天消息 #{$id}", admin_user()['id'], 'admin');
+        ok([], '已撤回');
+    }
+
+    /** 聊天室禁言用户管理 */
+    public function chatBanned()
+    {
+        [$page, $size, $offset] = page_params();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('chat_banned') . " b WHERE b.banned_until > NOW()");
+        $rows = db()->query("SELECT b.*, u.username FROM " . db()->table('chat_banned') . " b LEFT JOIN " . db()->table('users') . " u ON u.id=b.user_id WHERE b.banned_until > NOW() ORDER BY b.id DESC LIMIT $offset,$size");
+        $this->view('admin/chat_banned', [
+            'pageTitle' => '禁言用户管理', 'crumb' => '聊天室 / 禁言用户',
+            'activeMenu' => 'chat', 'activeSub' => 'chat-banned',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'admin');
+    }
+
+    public function banUser()
+    {
+        $userId = (int)input('user_id', 0);
+        $mins = max(1, (int)input('minutes', 60));
+        $reason = trim(input('reason', '后台手动禁言'));
+        if (!$userId) fail('参数错误');
+        db()->insert('chat_banned', [
+            'user_id' => $userId,
+            'reason' => $reason,
+            'banned_until' => date('Y-m-d H:i:s', time() + $mins * 60),
+            'source' => 'manual',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+        log_action('operation', "禁言用户 #{$userId} {$mins}分钟", admin_user()['id'], 'admin');
+        ok([], '已禁言');
+    }
+
+    public function unbanUser()
+    {
+        $userId = (int)input('user_id', 0);
+        if (!$userId) fail('参数错误');
+        db()->execute("UPDATE " . db()->table('chat_banned') . " SET banned_until = NOW() WHERE user_id = ? AND banned_until > NOW()", [$userId]);
+        log_action('operation', "解禁用户 #{$userId}", admin_user()['id'], 'admin');
+        ok([], '已解禁');
+    }
+
+    /** 聊天室违禁词管理 */
+    public function chatWords()
+    {
+        [$page, $size, $offset] = page_params();
+        $total = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('chat_words'));
+        $rows = db()->query("SELECT * FROM " . db()->table('chat_words') . " ORDER BY id DESC LIMIT $offset,$size");
+        $this->view('admin/chat_words', [
+            'pageTitle' => '违禁词管理', 'crumb' => '聊天室 / 违禁词',
+            'activeMenu' => 'chat', 'activeSub' => 'chat-words',
+            'rows' => $rows, 'total' => $total, 'page' => $page, 'size' => $size,
+        ], 'admin');
+    }
+
+    public function saveChatWord()
+    {
+        $word = trim(input('word', ''));
+        if (!$word) fail('请输入违禁词');
+        try {
+            db()->insert('chat_words', ['word' => $word, 'created_at' => date('Y-m-d H:i:s')]);
+        } catch (Throwable $e) {
+            fail('该违禁词已存在');
+        }
+        ok([], '已添加');
+    }
+
+    public function deleteChatWord()
+    {
+        $id = (int)input('id', 0);
+        db()->delete('chat_words', 'id = ?', [$id]);
+        ok([], '已删除');
     }
 
     /** 申请管理 (用户中心申请: 认证) */
@@ -465,8 +726,17 @@ class AdminController extends Controller
     public function saveOauth()
     {
         $this->setConfig('oauth_enabled', (int)input('oauth_enabled', 0));
-        foreach (['oauth_qq_id','oauth_qq_secret','oauth_wechat_id','oauth_wechat_secret','oauth_alipay_id','oauth_alipay_secret'] as $f) {
-            $this->setConfig($f, input($f, ''));
+        foreach (['oauth_qq_id','oauth_qq_secret','oauth_qq_callback','oauth_wechat_id','oauth_wechat_secret','oauth_wechat_callback','oauth_alipay_id','oauth_alipay_secret','oauth_alipay_callback'] as $f) {
+            $this->setConfig($f, trim(input($f, '')));
+        }
+        // 若启用聚合登录, 校验至少配置一个平台
+        if ((int)input('oauth_enabled', 0) === 1) {
+            $hasQq = input('oauth_qq_id') && input('oauth_qq_secret');
+            $hasWx = input('oauth_wechat_id') && input('oauth_wechat_secret');
+            $hasAp = input('oauth_alipay_id') && input('oauth_alipay_secret');
+            if (!$hasQq && !$hasWx && !$hasAp) {
+                fail('开启聚合登录需至少完整配置一个平台的 APPID 与 Secret');
+            }
         }
         log_action('operation', '更新聚合登录配置', admin_user()['id'], 'admin');
         ok([], '保存成功');
@@ -519,14 +789,28 @@ class AdminController extends Controller
     public function savePublicity()
     {
         $id = (int)input('id', 0);
+        $type = input('type', 'partner');
         $data = [
-            'type' => input('type', 'partner'),
+            'type' => $type,
             'title' => trim(input('title', '')),
             'content' => input('content', ''),
             'link' => trim(input('link', '')),
             'status' => (int)input('status', 1),
             'sort' => (int)input('sort', 0),
+            'image' => trim(input('image', '')),
+            'icp_no' => trim(input('icp_no', '')),
+            'reason' => trim(input('reason', '')),
         ];
+        // user_id 备案用户 (允许为空)
+        $uid = (int)input('user_id', 0);
+        $data['user_id'] = $uid > 0 ? $uid : null;
+        // 合作方类型若上传了图片则保存
+        if ($type === 'partner' && !empty($_FILES['image_file'])) {
+            try {
+                $rel = $this->handleUpload('image_file', 'publicity');
+                $data['image'] = $rel;
+            } catch (Throwable $e) {}
+        }
         if (!$data['title']) fail('请输入标题');
         if ($id) {
             db()->update('publicity', $data, 'id = :id', ['id' => $id]);
@@ -536,6 +820,23 @@ class AdminController extends Controller
         }
         log_action('operation', "保存公示 {$data['title']}", admin_user()['id'], 'admin');
         ok([], '保存成功');
+    }
+
+    /** 通用文件上传 (返回相对路径) */
+    private function handleUpload($field, $subDir)
+    {
+        if (empty($_FILES[$field])) return '';
+        $file = $_FILES[$field];
+        if ($file['error'] !== UPLOAD_ERR_OK) return '';
+        if ($file['size'] > config('upload.max_size')) fail('文件过大');
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, config('upload.allow'))) fail('不支持的文件类型');
+        $dir = config('upload.path') . '/' . $subDir;
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        $name = $subDir . '_' . date('YmdHis') . '_' . random_str(6) . '.' . $ext;
+        $path = $dir . '/' . $name;
+        if (!move_uploaded_file($file['tmp_name'], $path)) fail('保存失败');
+        return 'uploads/' . $subDir . '/' . $name;
     }
 
     public function deletePublicity()
@@ -601,11 +902,6 @@ class AdminController extends Controller
 
     private function setConfig($name, $value)
     {
-        $exists = db()->queryOne("SELECT id FROM " . db()->table('config') . " WHERE name = ?", [$name]);
-        if ($exists) {
-            db()->update('config', ['value' => $value, 'updated_at' => date('Y-m-d H:i:s')], 'name = :n', ['n' => $name]);
-        } else {
-            db()->insert('config', ['name' => $name, 'value' => $value, 'updated_at' => date('Y-m-d H:i:s')]);
-        }
+        set_site_config($name, $value);
     }
 }

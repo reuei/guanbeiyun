@@ -40,7 +40,7 @@ function cfgv2($k, $d='') { global $cfg; return $cfg[$k] ?? $d; }
 <script>
 function saveAnn(e){e.preventDefault();var d={};new FormData(e.target).forEach(function(v,k){d[k]=v;});
   var b=document.getElementById('annBtn');b.disabled=true;b.innerHTML='<span class="gb-loading gb-loading-sm"></span> 保存中';
-  gbAjax({method:'POST',url:'<?php echo site_url('admin/announcement/save'); ?>',data:d,success:function(r){if(r.code===0)gbToast.success(r.msg);},complete:function(){b.disabled=false;b.innerHTML='保存';}});return false;}
+  gbAjax({method:'POST',url:'<?php echo site_url('admin/announcement/save'); ?>',data:d,success:function(r){if(r.code===0){gbToast.success(r.msg);setTimeout(function(){location.reload();},600);}},complete:function(){b.disabled=false;b.innerHTML='保存';}});return false;}
 function sendNotify(e){e.preventDefault();var d={};new FormData(e.target).forEach(function(v,k){d[k]=v;});
   var b=document.getElementById('notifyBtn');b.disabled=true;b.innerHTML='<span class="gb-loading gb-loading-sm"></span> 发送中';
   gbAjax({method:'POST',url:'<?php echo site_url('admin/notify/send'); ?>',data:d,success:function(r){if(r.code===0){gbToast.success(r.msg);e.target.reset();}},complete:function(){b.disabled=false;b.innerHTML='发送';}});return false;}

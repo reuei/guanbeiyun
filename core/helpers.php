@@ -63,23 +63,39 @@ function fail($msg = '操作失败', $code = 1, $data = null)
     json(['code' => $code, 'msg' => $msg, 'data' => $data]);
 }
 
-/** 获取站点设置 (从数据库) */
+/** 获取站点设置 (从数据库, 使用全局数组以保证 set_site_config 同请求内可见) */
 function site_config($key = null, $default = null)
 {
-    static $cache = null;
-    if ($cache === null) {
-        $cache = [];
+    if (!isset($GLOBALS['_gb_site_config_cache'])) {
+        $GLOBALS['_gb_site_config_cache'] = [];
         try {
             $rows = db()->query("SELECT * FROM " . db()->table('config'));
             foreach ($rows as $row) {
-                $cache[$row['name']] = $row['value'];
+                $GLOBALS['_gb_site_config_cache'][$row['name']] = $row['value'];
             }
         } catch (Throwable $e) {
             // 安装前表不存在
         }
     }
-    if ($key === null) return $cache;
-    return $cache[$key] ?? $default;
+    if ($key === null) return $GLOBALS['_gb_site_config_cache'];
+    return $GLOBALS['_gb_site_config_cache'][$key] ?? $default;
+}
+
+/** 设置配置项 (写入数据库 + 同步更新缓存) */
+function set_site_config($name, $value)
+{
+    if (!isset($GLOBALS['_gb_site_config_cache'])) {
+        // 触发一次缓存加载
+        site_config();
+    }
+    $exists = db()->queryOne("SELECT id FROM " . db()->table('config') . " WHERE name = ?", [$name]);
+    if ($exists) {
+        db()->update('config', ['value' => $value, 'updated_at' => date('Y-m-d H:i:s')], 'name = :n', ['n' => $name]);
+    } else {
+        db()->insert('config', ['name' => $name, 'value' => $value, 'updated_at' => date('Y-m-d H:i:s')]);
+    }
+    // 同步更新缓存,使本请求后续读取为新值
+    $GLOBALS['_gb_site_config_cache'][$name] = $value;
 }
 
 /** 站点根URL */
@@ -286,4 +302,116 @@ function time_ago($datetime)
     if ($diff < 86400) return floor($diff / 3600) . '小时前';
     if ($diff < 2592000) return floor($diff / 86400) . '天前';
     return date('Y-m-d', $ts);
+}
+
+/** 网站是否处于维护模式 (排除管理员与后台/登录接口) */
+function is_maintenance_mode()
+{
+    if (!is_file(GB_ROOT . '/config/config.php')) return false;
+    $path = request_path();
+    // 后台、登录、API 与安装程序不拦截
+    $allow = ['/admin', '/login', '/logout', '/api/', '/captcha', '/oauth'];
+    foreach ($allow as $a) {
+        if (strpos($path, $a) === 0) return false;
+    }
+    if (is_admin_logged_in()) return false;
+    return site_config('maintenance_enabled') == '1';
+}
+
+/** 获取用户的认证标识列表 (通过其已通过的认证申请) */
+function user_certifications($userId)
+{
+    $certs = [];
+    try {
+        $rows = db()->query(
+            "SELECT a.type, a.name, c.image, c.info, c.icon_style FROM " . db()->table('applications') . " a " .
+            "LEFT JOIN " . db()->table('certifications') . " c ON c.name = a.name AND c.status=1 " .
+            "WHERE a.user_id = ? AND a.status = 1 AND a.type IN ('enterprise','personal','partner') ORDER BY a.id DESC",
+            [$userId]
+        );
+        foreach ($rows as $r) {
+            // 若未配置对应认证图片, 用类型回退
+            if (empty($r['image'])) {
+                $r['image'] = '';
+                $r['icon_style'] = $r['icon_style'] ?: ('cert-' . $r['type']);
+            }
+            $certs[] = $r;
+        }
+    } catch (Throwable $e) {}
+    return $certs;
+}
+
+/** 获取聊天室违禁词列表 */
+function chat_forbidden_words()
+{
+    static $words = null;
+    if ($words === null) {
+        $words = [];
+        try {
+            $rows = db()->query("SELECT word FROM " . db()->table('chat_words'));
+            foreach ($rows as $r) $words[] = $r['word'];
+        } catch (Throwable $e) {}
+    }
+    return $words;
+}
+
+/** 检查用户是否被禁言, 返回 [bool, 截止时间] */
+function chat_user_banned($userId)
+{
+    try {
+        $row = db()->queryOne(
+            "SELECT * FROM " . db()->table('chat_banned') . " WHERE user_id = ? AND banned_until > NOW() ORDER BY banned_until DESC LIMIT 1",
+            [$userId]
+        );
+        if ($row) return [true, $row['banned_until'], $row['reason']];
+    } catch (Throwable $e) {}
+    return [false, null, null];
+}
+
+/** 生成不重复的备案号 格式: 管ICP备xxxxxxxx号 */
+function gen_icp_no()
+{
+    $p = db()->prefix();
+    for ($i = 0; $i < 10; $i++) {
+        $seq = str_pad((string)mt_rand(10000000, 99999999), 8, '0', STR_PAD_LEFT);
+        $no = '管ICP备' . $seq . '号';
+        $exists = db()->queryOne("SELECT id FROM {$p}filings WHERE icp_no = ?", [$no]);
+        if (!$exists) return $no;
+    }
+    // 极端情况回退
+    return '管ICP备' . date('Ymd') . mt_rand(1000, 9999) . '号';
+}
+
+/** 获取随机一言 */
+function hitokoto()
+{
+    $list = [
+        '愿你历尽千帆，归来仍是少年。',
+        '生活明朗，万物可爱。',
+        '凡是过往，皆为序章。',
+        '心若向阳，无谓悲伤。',
+        '不忘初心，方得始终。',
+        '星光不问赶路人，时光不负有心人。',
+        '愿你成为自己的太阳，无需凭借谁的光。',
+        '所有的美好，都值得等待。',
+    ];
+    return $list[array_rand($list)];
+}
+
+/** 获取用户未读通知数量 */
+function unread_notification_count($userId)
+{
+    try {
+        $p = db()->prefix();
+        // 直接发给本人的未读
+        $c1 = (int)db()->queryScalar("SELECT COUNT(*) FROM {$p}notifications WHERE user_id = ? AND is_read = 0", [$userId]);
+        // 全体通知中未读的 (排除已在 reads 表中标记的)
+        $c2 = (int)db()->queryScalar(
+            "SELECT COUNT(*) FROM {$p}notifications n WHERE n.user_id = 0 AND NOT EXISTS (SELECT 1 FROM {$p}notification_reads r WHERE r.notification_id = n.id AND r.user_id = ?)",
+            [$userId]
+        );
+        return $c1 + $c2;
+    } catch (Throwable $e) {
+        return 0;
+    }
 }

@@ -114,6 +114,37 @@ $articles = $articles ?? [];
   </div>
 </section>
 
+<!-- 合作方轮播样式 -->
+<style>
+.partner-carousel { position: relative; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.pc-viewport { overflow: hidden; }
+.pc-track { display: flex; transition: transform .5s ease; }
+.pc-slide { min-width: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+.pc-slide[data-link] { cursor: pointer; }
+.pc-img { width: 100%; height: 260px; overflow: hidden; background: var(--bg-soft); }
+.pc-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pc-content { padding: 18px 22px; }
+.pc-content h3 { margin: 0 0 6px; font-size: 18px; color: var(--text); }
+.pc-content p { margin: 0 0 14px; color: var(--text-2); }
+.pc-content .pc-link { margin-top: 2px; }
+.pc-arrow { position: absolute; top: 130px; transform: translateY(-50%); width: 38px; height: 38px; border-radius: var(--radius-full); background: var(--card-bg); border: 1px solid var(--border); color: var(--text); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.12); transition: background .2s, color .2s, border-color .2s; z-index: 2; padding: 0; }
+.pc-arrow svg { width: 18px; height: 18px; }
+.pc-arrow:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pc-prev { left: 12px; }
+.pc-next { right: 12px; }
+.pc-dots { display: flex; justify-content: center; gap: 8px; padding: 0 22px 16px; }
+.pc-dot { width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--border); cursor: pointer; transition: background .2s, width .2s; border: none; padding: 0; }
+.pc-dot:hover { background: var(--text-2); }
+.pc-dot.active { background: var(--primary); width: 22px; }
+.partner-empty { padding: 40px 20px; text-align: center; color: var(--text-2); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.partner-empty p { margin: 0; }
+@media (max-width: 768px) {
+  .pc-img { height: 200px; }
+  .pc-arrow { top: 100px; width: 34px; height: 34px; }
+  .pc-content { padding: 14px 16px; }
+}
+</style>
+
 <!-- 公示信息 -->
 <section class="section">
   <div class="container">
@@ -121,28 +152,61 @@ $articles = $articles ?? [];
       <h2>公示信息</h2>
       <p>合作方公示与备案失效公示</p>
     </div>
-    <div class="publicity-grid">
-      <div class="publicity-card">
-        <div class="ph"><span class="status-dot success"></span> 合作方公示</div>
-        <div class="pb">
-          <?php if ($partners): foreach ($partners as $p): ?>
-            <div class="item"><span><?php echo e($p['title']); ?></span><span class="text-muted text-sm"><?php echo e(date('Y-m-d', strtotime($p['created_at']))); ?></span></div>
-          <?php endforeach; else: ?>
-            <div class="item text-muted">暂无公示信息</div>
-          <?php endif; ?>
+
+    <?php if ($partners): ?>
+    <div class="partner-carousel" id="partnerCarousel">
+      <div class="pc-viewport">
+        <div class="pc-track">
+          <?php foreach ($partners as $p): ?>
+          <div class="pc-slide" <?php echo !empty($p['link']) ? 'data-link="' . e($p['link']) . '"' : ''; ?>>
+            <?php if (!empty($p['image'])): ?>
+            <div class="pc-img"><img src="<?php echo asset($p['image']); ?>" alt="<?php echo e($p['title']); ?>"></div>
+            <?php endif; ?>
+            <div class="pc-content">
+              <h3><?php echo e($p['title']); ?></h3>
+              <?php if (!empty($p['content'])): ?>
+              <p class="text-sm text-muted"><?php echo e($p['content']); ?></p>
+              <?php endif; ?>
+              <?php if (!empty($p['link'])): ?>
+              <a class="btn btn-primary pc-link" href="<?php echo e($p['link']); ?>" target="_blank" rel="noopener">访问网站</a>
+              <?php endif; ?>
+            </div>
+          </div>
+          <?php endforeach; ?>
         </div>
       </div>
-      <div class="publicity-card">
-        <div class="ph"><span class="status-dot danger"></span> 失效/违规公示</div>
-        <div class="pb">
-          <?php if ($invalids): foreach ($invalids as $p): ?>
-            <div class="item"><span class="text-danger"><?php echo e($p['title']); ?></span><span class="text-muted text-sm"><?php echo e(date('Y-m-d', strtotime($p['created_at']))); ?></span></div>
-          <?php endforeach; else: ?>
-            <div class="item text-muted">暂无公示信息</div>
-          <?php endif; ?>
-        </div>
+      <?php if (count($partners) > 1): ?>
+      <button type="button" class="pc-arrow pc-prev" aria-label="上一个合作方">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button type="button" class="pc-arrow pc-next" aria-label="下一个合作方">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="pc-dots">
+        <?php foreach ($partners as $i => $p): ?>
+        <button type="button" class="pc-dot <?php echo $i === 0 ? 'active' : ''; ?>" data-i="<?php echo $i; ?>" aria-label="第 <?php echo $i + 1; ?> 个合作方"></button>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+    </div>
+    <?php else: ?>
+    <div class="partner-carousel partner-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="40" height="40"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <p>暂无合作方公示信息</p>
+    </div>
+    <?php endif; ?>
+
+    <div class="publicity-card" style="margin-top:20px;">
+      <div class="ph"><span class="status-dot danger"></span> 失效/违规公示</div>
+      <div class="pb">
+        <?php if ($invalids): foreach ($invalids as $p): ?>
+          <div class="item"><span class="text-danger"><?php echo e($p['title']); ?></span><span class="text-muted text-sm"><?php echo e(date('Y-m-d', strtotime($p['created_at']))); ?></span></div>
+        <?php endforeach; else: ?>
+          <div class="item text-muted">暂无公示信息</div>
+        <?php endif; ?>
       </div>
     </div>
+
   </div>
 </section>
 
@@ -177,3 +241,49 @@ $articles = $articles ?? [];
     </div>
   </div>
 </section>
+
+<!-- 合作方轮播逻辑 -->
+<script>
+(function(){
+  var root = document.getElementById('partnerCarousel');
+  if (!root) return;
+  var track = root.querySelector('.pc-track');
+  var slides = root.querySelectorAll('.pc-slide');
+  var dots = root.querySelectorAll('.pc-dot');
+  var prevBtn = root.querySelector('.pc-prev');
+  var nextBtn = root.querySelector('.pc-next');
+  var count = slides.length;
+  if (!count || !track) return;
+  var idx = 0, timer = null;
+  var INTERVAL = 4000;
+
+  function go(i){
+    idx = (i + count) % count;
+    track.style.transform = 'translateX(' + (-idx * 100) + '%)';
+    dots.forEach(function(d, di){ d.classList.toggle('active', di === idx); });
+  }
+  function nextSlide(){ go(idx + 1); }
+  function prevSlide(){ go(idx - 1); }
+  function start(){ stop(); if (count > 1) timer = setInterval(nextSlide, INTERVAL); }
+  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+
+  if (nextBtn) nextBtn.addEventListener('click', function(){ nextSlide(); start(); });
+  if (prevBtn) prevBtn.addEventListener('click', function(){ prevSlide(); start(); });
+  dots.forEach(function(d, di){ d.addEventListener('click', function(){ go(di); start(); }); });
+
+  slides.forEach(function(s){
+    s.addEventListener('click', function(e){
+      if (e.target.closest('a')) return;
+      var link = s.getAttribute('data-link');
+      if (link) window.open(link, '_blank', 'noopener');
+    });
+  });
+
+  // 悬停暂停自动轮播
+  root.addEventListener('mouseenter', stop);
+  root.addEventListener('mouseleave', start);
+
+  go(0);
+  start();
+})();
+</script>
