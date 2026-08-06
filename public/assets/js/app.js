@@ -227,6 +227,12 @@
     if (opts.headers) Object.assign(headers, opts.headers);
     var body = null;
 
+    function buildQuery(obj) {
+      return Object.keys(obj).map(function (k) {
+        return encodeURIComponent(k) + '=' + encodeURIComponent(obj[k]);
+      }).join('&');
+    }
+
     if (method === 'POST') {
       if (opts.json) {
         headers['Content-Type'] = 'application/json';
@@ -234,13 +240,16 @@
       } else if (opts.form) {
         body = opts.form;
       } else if (opts.data instanceof FormData) {
-        // FormData 直接作为 body, 浏览器自动设置 multipart 边界
         body = opts.data;
       } else if (opts.data) {
         headers['Content-Type'] = 'application/x-www-form-urlencoded';
-        body = Object.keys(opts.data).map(function (k) {
-          return encodeURIComponent(k) + '=' + encodeURIComponent(opts.data[k]);
-        }).join('&');
+        body = buildQuery(opts.data);
+      }
+    } else {
+      // GET 等请求: 将 data 拼接到 URL query string
+      if (opts.data && !(opts.data instanceof FormData)) {
+        var qs = buildQuery(opts.data);
+        if (qs) url += (url.indexOf('?') >= 0 ? '&' : '?') + qs;
       }
     }
     var xhr = new XMLHttpRequest();
