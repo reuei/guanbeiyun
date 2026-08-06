@@ -79,6 +79,11 @@ class ChatAdminController extends Controller
     /** 登录页 (独立页面, 不使用任何布局) */
     public function login()
     {
+        // 已登录平台后台管理员, 直接进入聊天室后台 (视为平台管理)
+        if (is_admin_logged_in()) {
+            redirect(site_url('admins'));
+        }
+        // 已登录前台用户且为聊天室管理员, 直接进入
         if (is_logged_in()) {
             $uid = (int)(current_user()['id'] ?? 0);
             if (is_chat_admin($uid)) redirect(site_url('admins'));
@@ -91,13 +96,24 @@ class ChatAdminController extends Controller
         ], null);
     }
 
-    /** 处理登录 - 直接使用前台用户登录态, 无需二次登录 */
+    /** 处理登录 - 同时支持平台后台 admin 账号和前台聊天室管理员账号 */
     public function doLogin()
     {
         $username = trim(input('username', ''));
         $password = input('password', '');
         if (!$username || !$password) fail('请输入账号和密码');
         try {
+            // 1. 优先尝试平台后台 admins 表 (平台管理)
+            $admin = db()->queryOne("SELECT * FROM " . db()->table('admins') . " WHERE username = ? LIMIT 1", [$username]);
+            if ($admin && verify_password($password, $admin['password'])) {
+                db()->update('admins', ['last_login' => date('Y-m-d H:i:s'), 'last_ip' => $_SERVER['REMOTE_ADDR'] ?? ''], 'id = :id', ['id' => $admin['id']]);
+                unset($admin['password']);
+                $_SESSION['gb_admin'] = $admin;
+                log_action('login', "平台管理员登录聊天室后台: {$username}", (int)$admin['id'], 'admin');
+                ok(['redirect' => site_url('admins')], '登录成功');
+                return;
+            }
+            // 2. 回退到前台 users 表 (聊天室管理员/超管)
             $user = db()->queryOne("SELECT * FROM " . db()->table('users') . " WHERE username = ? AND status = 1 LIMIT 1", [$username]);
             if (!$user || !verify_password($password, $user['password'])) {
                 fail('账号或密码错误');
@@ -107,6 +123,7 @@ class ChatAdminController extends Controller
             }
             unset($user['password']);
             $_SESSION['gb_user'] = $user;
+            log_action('login', "聊天室管理员登录: {$username}", (int)$user['id'], 'user');
             ok(['redirect' => site_url('admins')], '登录成功');
         } catch (Throwable $e) {
             fail('系统异常: ' . $e->getMessage());
@@ -115,7 +132,12 @@ class ChatAdminController extends Controller
 
     public function logout()
     {
+        // 仅清除聊天室后台登录态, 不影响平台后台 /admin 的登录
         unset($_SESSION['gb_user']);
+        // 若仅是平台后台 admin 登录(无前台用户), 同样清除, 回到登录页
+        if (is_admin_logged_in() && !is_logged_in()) {
+            unset($_SESSION['gb_admin']);
+        }
         redirect(site_url('admins/login'));
     }
 
