@@ -41,6 +41,7 @@ $router->post('/chat/recall', 'ChatController@recall');
 $router->post('/chat/heartbeat', 'ChatController@heartbeat');
 $router->get('/chat/online/count', 'ChatController@onlineCount');
 $router->post('/chat/online/list', 'ChatController@onlineList');
+$router->get('/chat/online/list', 'ChatController@onlineList');
 $router->get('/chat/announcements', 'ChatController@announcements');
 $router->get('/chat/quick_phrases', 'ChatController@quickPhrases');
 $router->post('/chat/quick_phrase/save', 'ChatController@saveQuickPhrase');
