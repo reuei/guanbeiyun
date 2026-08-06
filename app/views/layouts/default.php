@@ -108,13 +108,13 @@ $user = current_user();
         <div class="icp-row"><?php echo e($icpInfo); ?></div>
         <div class="footer-social">
           <div class="s-btn" onclick="gbShowQR('QQ 客服', '<?php echo $qqImg ? asset($qqImg) : ''; ?>')" title="QQ">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.003 0c4.4 0 7.95 3.55 7.95 7.94 0 .52-.05 1.03-.14 1.52l1.2 1.93c.3.48.5 1.06.2 1.55l-1.06 1.6c-.2.3-.5.45-.84.45l-.78-.04-.5 1.4c-.2.6-.84.97-1.48.9l-2-.2-.7 1.4c-.4.8-1.4 1.1-2.2.7-.1 0-.1 0-.2-.1L12 21l-1.45 1c-.7.5-1.7.3-2.2-.5l-.7-1.4-2 .2c-.65.07-1.28-.3-1.5-.9l-.5-1.4-.78.04c-.34 0-.64-.15-.84-.45l-1.06-1.6c-.3-.5-.1-1.07.2-1.55l1.2-1.93c-.1-.5-.14-1-.14-1.52C4.05 3.55 7.6 0 12 0z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2.5c-3.6 0-6.5 2.9-6.5 6.5 0 1.3.4 2.5 1 3.5-.3.6-.7 1.4-.9 2.2-.2.8-.2 1.5.2 1.9.3.3.8.3 1.3.1.4-.2.7-.5.9-.9.1.4.4.9 1 .9.6 0 1-.4 1.3-.9.2.4.5.9 1 .9.5 0 .8-.4 1-.9.2.4.6.9 1.2.9.5 0 .8-.4 1-.9.2.4.6.9 1.2.9.5 0 .8-.4 1-.9.2.4.6.9 1.2.9.5 0 .8-.4 1-.9.2.4.6.9 1.2.9.6 0 .9-.5 1-1 .2.4.5.7.9.9.5.2 1 .2 1.3-.1.4-.4.4-1.1.2-1.9-.2-.8-.6-1.6-.9-2.2.6-1 1-2.2 1-3.5 0-3.6-2.9-6.5-6.5-6.5zm-2.5 5c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2-1.2-.5-1.2-1.2.5-1.2 1.2-1.2zm5 0c.7 0 1.2.5 1.2 1.2s-.5 1.2-1.2 1.2-1.2-.5-1.2-1.2.5-1.2 1.2-1.2zm-2.5 4c1.4 0 2.5.8 2.5 1.8 0 .4-.2.7-.5 1-.5-.6-1.2-1-2-1s-1.5.4-2 1c-.3-.3-.5-.6-.5-1 0-1 1.1-1.8 2.5-1.8z"/></svg>
           </div>
           <div class="s-btn" onclick="gbShowQR('微信客服', '<?php echo $wechatImg ? asset($wechatImg) : ''; ?>')" title="微信">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.69 2C4.44 2 1 4.94 1 8.56c0 2.1 1.16 3.96 2.96 5.16-.14.5-.4 1.4-.44 1.5-.06.16 0 .3.16.3.1 0 1.46-.84 2.04-1.2.86.26 1.8.4 2.78.4.16 0 .32 0 .48-.02-.1-.34-.16-.7-.16-1.06 0-3.04 2.94-5.5 6.56-5.5.16 0 .32 0 .48.02C15.3 4.4 12.32 2 8.69 2zm-2.4 4.2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.8 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.5 9.5c-3.2 0-5.8 2.2-5.8 4.94 0 1.5.8 2.84 2.1 3.74-.1.36-.3 1.04-.34 1.12-.04.12 0 .22.12.22.08 0 1.1-.62 1.52-.92.74.22 1.54.34 2.4.34 3.2 0 5.8-2.2 5.8-4.94S19.7 9.5 16.5 9.5zm-2 3.2c.4 0 .72.32.72.72s-.32.72-.72.72-.72-.32-.72-.72.32-.72.72-.72zm4 0c.4 0 .72.32.72.72s-.32.72-.72.72-.72-.32-.72-.72.32-.72.72-.72z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M8.69 2C4.44 2 1 4.94 1 8.56c0 2.1 1.16 3.96 2.96 5.16-.14.5-.4 1.4-.44 1.5-.06.16 0 .3.16.3.1 0 1.46-.84 2.04-1.2.86.26 1.8.4 2.78.4.16 0 .32 0 .48-.02-.1-.34-.16-.7-.16-1.06 0-3.04 2.94-5.5 6.56-5.5.16 0 .32 0 .48.02C15.3 4.4 12.32 2 8.69 2zm-2.4 4.2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.8 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM16.5 9.5c-3.2 0-5.8 2.2-5.8 4.94 0 1.5.8 2.84 2.1 3.74-.1.36-.3 1.04-.34 1.12-.04.12 0 .22.12.22.08 0 1.1-.62 1.52-.92.74.22 1.54.34 2.4.34 3.2 0 5.8-2.2 5.8-4.94S19.7 9.5 16.5 9.5zm-2 3.2c.4 0 .72.32.72.72s-.32.72-.72.72-.72-.32-.72-.72.32-.72.72-.72zm4 0c.4 0 .72.32.72.72s-.32.72-.72.72-.72-.32-.72-.72.32-.72.72-.72z"/></svg>
           </div>
           <div class="s-btn" onclick="gbShowQR('快手官方', '<?php echo $kuaishouImg ? asset($kuaishouImg) : ''; ?>')" title="快手">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.5 2h-3v12.6c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.2 0 .4 0 .6.1V9.6c-.2 0-.4-.1-.6-.1-2.8 0-5 2.2-5 5s2.2 5 5 5 5-2.2 5-5V8.5c1 .8 2.3 1.3 3.7 1.3V6.7c-1.9 0-3.7-1.6-3.7-3.7V2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M12 2C8.5 2 6 4 5 7c-.5 1.5-.5 3 0 4.5L3 14v3l2-1c.5 1 1.5 2 3 2.5v2.5h6v-3c2-.5 4-2 5-4.5 1-2.5.5-5-1-7C16.5 3.5 14 2 12 2zm-2 5.5c.8 0 1.5.7 1.5 1.5S10.8 10.5 10 10.5 8.5 9.8 8.5 9 9.2 7.5 10 7.5zm5 0c.8 0 1.5.7 1.5 1.5S15.8 10.5 15 10.5s-1.5-.7-1.5-1.5.7-1.5 1.5-1.5z"/></svg>
           </div>
         </div>
       </div>
@@ -153,6 +153,7 @@ $user = current_user();
           <?php echo e($copyright); ?>
         </div>
         <?php
+        // 修复: 不再同时显示用户备案和全局ICP信息, 避免出现多个管ICP备案
         $showAllIcp = (int)site_config('show_all_icp', 0) === 1;
         $passedFilings = [];
         try {
@@ -168,58 +169,71 @@ $user = current_user();
 
         $filingInfoBase = rtrim(site_config('filing_info_url', ''), '/');
         $icpImgs = icp_prefix_images();
+        // 只取第一个图标作为备案号前缀 (避免多个图标重复显示)
+        $icpFirstImg = !empty($icpImgs) ? $icpImgs[0] : null;
+
+        // 优先显示用户备案; 如果用户有备案, 则不显示全局 icp_info (避免重复)
+        $showGlobalIcp = empty($passedFilings) && !empty($icpInfo);
 
         if ($passedFilings): foreach ($passedFilings as $pf):
           $pureNo = preg_replace('/[^\d]/', '', $pf['icp_no']);
+          // 修复404: 始终使用纯数字链接到本地备案信息页
           if ($filingInfoBase && $pureNo) {
             $pfLink = $filingInfoBase . '/' . urlencode($pureNo);
           } else {
-            $pfLink = site_url('filing/info/' . urlencode($pf['icp_no']));
+            $pfLink = site_url('filing/info/' . urlencode($pureNo ?: $pf['icp_no']));
           }
         ?>
           <div style="line-height:2;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-            <?php foreach ($icpImgs as $ii):
-              $iiLink = $ii['link'] ?: 'javascript:void(0);';
-              $iiTarget = $ii['link'] ? 'target="_blank" rel="noopener"' : '';
+            <?php if ($icpFirstImg):
+              $iiLink = $icpFirstImg['link'] ?: 'javascript:void(0);';
+              $iiTarget = $icpFirstImg['link'] ? 'target="_blank" rel="noopener"' : '';
             ?>
-              <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($ii['name']); ?>">
+              <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($icpFirstImg['name']); ?>">
                 <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#0c2461,#1e3799);border-radius:4px;padding:2px 6px;height:24px;vertical-align:middle;margin-right:2px;">
-                  <img src="<?php echo asset($ii['image']); ?>" alt="<?php echo e($ii['name']); ?>" style="height:24px;vertical-align:middle;">
+                  <img src="<?php echo asset($icpFirstImg['image']); ?>" alt="<?php echo e($icpFirstImg['name']); ?>" style="height:24px;vertical-align:middle;">
                 </span>
               </a>
-            <?php endforeach; ?>
+            <?php endif; ?>
             <a href="<?php echo e($pfLink); ?>" target="_blank" rel="noopener" style="color:var(--text-muted, #6b7280); text-decoration:none;">
               管ICP备<?php echo e($pureNo ?: $pf['icp_no']); ?>号
             </a>
           </div>
         <?php endforeach; endif; ?>
 
-        <?php if (!empty($icpInfo)): ?>
+        <?php if ($showGlobalIcp): ?>
           <div style="line-height:2;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-            <?php foreach ($icpImgs as $ii):
-              $iiLink = $ii['link'] ?: 'javascript:void(0);';
-              $iiTarget = $ii['link'] ? 'target="_blank" rel="noopener"' : '';
+            <?php if ($icpFirstImg):
+              $iiLink = $icpFirstImg['link'] ?: 'javascript:void(0);';
+              $iiTarget = $icpFirstImg['link'] ? 'target="_blank" rel="noopener"' : '';
             ?>
-              <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($ii['name']); ?>">
+              <a href="<?php echo e($iiLink); ?>" <?php echo $iiTarget; ?> title="<?php echo e($icpFirstImg['name']); ?>">
                 <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#0c2461,#1e3799);border-radius:4px;padding:2px 6px;height:24px;vertical-align:middle;margin-right:2px;">
-                  <img src="<?php echo asset($ii['image']); ?>" alt="<?php echo e($ii['name']); ?>" style="height:24px;vertical-align:middle;">
+                  <img src="<?php echo asset($icpFirstImg['image']); ?>" alt="<?php echo e($icpFirstImg['name']); ?>" style="height:24px;vertical-align:middle;">
                 </span>
               </a>
-            <?php endforeach; ?>
+            <?php endif; ?>
             <?php
+            // 修复404: 提取纯数字备案号用于本地链接
             if (preg_match('/管ICP备([^号]+)号/u', $icpInfo, $m)) {
               $pureNo = preg_replace('/[^\d]/', '', $m[1]);
-              if ($filingInfoBase && $pureNo) {
-                $infoLink = $filingInfoBase . '/' . urlencode($pureNo);
-              } else {
-                $infoLink = site_url('filing/info/' . urlencode($icpInfo));
-              }
-              echo '<a href="'.e($infoLink).'" target="_blank" rel="noopener" style="color:var(--text-muted,#6b7280);text-decoration:none;">'.e($icpInfo).'</a>';
             } else {
-              echo e($icpInfo);
+              $pureNo = preg_replace('/[^\d]/', '', $icpInfo);
             }
+            if ($filingInfoBase && $pureNo) {
+              $infoLink = $filingInfoBase . '/' . urlencode($pureNo);
+            } else {
+              $infoLink = site_url('filing/info/' . urlencode($pureNo ?: $icpInfo));
+            }
+            echo '<a href="'.e($infoLink).'" target="_blank" rel="noopener" style="color:var(--text-muted,#6b7280);text-decoration:none;">'.e($icpInfo).'</a>';
             ?>
           </div>
+        <?php endif; ?>
+
+        <?php /* v6: 底部代码 (备案通过后用户在用户中心点击备案号显示, 后台可修改) */
+        $footerCode = site_config('footer_code', '');
+        if (!empty($footerCode)): ?>
+          <div class="footer-code-wrap" style="margin-top:8px;"><?php echo $footerCode; ?></div>
         <?php endif; ?>
       </div>
       <a class="tech-link" href="<?php echo e($techUrl); ?>" target="_blank"><?php echo e($techSupport); ?></a>

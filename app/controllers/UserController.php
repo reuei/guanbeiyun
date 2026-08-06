@@ -649,11 +649,12 @@ public function messages()
         }
         unset($c);
     } catch (Throwable $e) {}
+    // v6: 私信改用 chat 独立布局 (无平台公共头部和页脚)
     $this->view('user/messages', [
-        'pageTitle' => '私信', 'crumb' => '工作台 / 私信',
-        'activeMenu' => 'workbench', 'activeSub' => 'uc-messages',
+        'pageTitle' => '私信 - ' . site_config('site_name', '管备云备案系统'),
+        'active'    => 'messages',
         'conversations' => $conversations, 'partner' => $partner, 'toId' => $toId,
-    ], 'user');
+    ], 'chat');
 }
 
 // v4: 获取与某用户的对话消息 GET /user/messages/chat

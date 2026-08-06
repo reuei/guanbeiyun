@@ -478,14 +478,15 @@ function is_blocked_by($blockedUserId, $byUserId)
     }
 }
 
-/** 获取备案号前缀图片 (后台 ICP 图片管理) */
+/** 获取备案号前缀图片 (后台 ICP 图片管理, 限制5个) */
 function icp_prefix_images()
 {
     static $cache = null;
     if ($cache !== null) return $cache;
     $cache = [];
     try {
-        $cache = db()->query("SELECT * FROM " . db()->table('icp_images') . " WHERE status=1 ORDER BY sort DESC, id ASC");
+        // v6: 限制最多5个备案号前缀图标
+        $cache = db()->query("SELECT * FROM " . db()->table('icp_images') . " WHERE status=1 ORDER BY sort DESC, id ASC LIMIT 5");
     } catch (Throwable $e) {}
     return $cache;
 }
@@ -514,4 +515,206 @@ function random_bg_image()
         'https://picsum.photos/seed/' . mt_rand(1, 9999) . '/1200/400',
     ];
     return $imgs[0];
+}
+
+/** v6: 获取用户聊天室角色 (user/member/admin/super_admin/platform_admin) */
+function chat_user_role($userId)
+{
+    static $cache = [];
+    $userId = (int)$userId;
+    if (!$userId) return 'user';
+    if (isset($cache[$userId])) return $cache[$userId];
+    try {
+        $row = db()->queryOne(
+            "SELECT chat_role FROM " . db()->table('user_titles') . " WHERE user_id = ?",
+            [$userId]
+        );
+        $cache[$userId] = $row['chat_role'] ?? 'user';
+    } catch (Throwable $e) {
+        $cache[$userId] = 'user';
+    }
+    return $cache[$userId];
+}
+
+/** v6: 获取用户头衔信息 (text/level/bg/role) */
+function user_title_info($userId)
+{
+    $userId = (int)$userId;
+    $info = ['text' => '', 'level' => 1, 'bg' => '', 'role' => 'user'];
+    if (!$userId) return $info;
+    try {
+        $row = db()->queryOne(
+            "SELECT title_text, level, title_bg, chat_role FROM " . db()->table('user_titles') . " WHERE user_id = ?",
+            [$userId]
+        );
+        if ($row) {
+            $info['text'] = $row['title_text'] ?? '';
+            $info['level'] = max(1, (int)($row['level'] ?? 1));
+            $info['bg'] = $row['title_bg'] ?? '';
+            $info['role'] = $row['chat_role'] ?? 'user';
+        }
+    } catch (Throwable $e) {}
+    return $info;
+}
+
+/** v6: 根据等级计算头衔背景色 (1级灰色, 5级蓝色, 10级绿色, 20级紫色, 50级橙金) */
+function level_bg_color($level)
+{
+    $level = (int)$level;
+    if ($level >= 50) return 'linear-gradient(135deg,#f59e0b,#fbbf24)'; // 橙金
+    if ($level >= 30) return 'linear-gradient(135deg,#dc2626,#ef4444)'; // 红色
+    if ($level >= 20) return 'linear-gradient(135deg,#7c3aed,#a855f7)'; // 紫色
+    if ($level >= 10) return 'linear-gradient(135deg,#059669,#10b981)'; // 绿色
+    if ($level >= 5)  return 'linear-gradient(135deg,#2563eb,#3b82f6)'; // 蓝色
+    return 'linear-gradient(135deg,#6b7280,#9ca3af)'; // 灰色(1-4级)
+}
+
+/** v6: 角色标签 (管理员/超管/平台管理) */
+function role_label($role)
+{
+    $map = [
+        'admin'           => ['text' => '管理员',   'bg' => '#d1fae5', 'color' => '#065f46'],
+        'super_admin'     => ['text' => '超管',     'bg' => '#ede9fe', 'color' => '#5b21b6'],
+        'platform_admin'  => ['text' => '平台管理', 'bg' => 'linear-gradient(135deg,#1f2937,#f59e0b)', 'color' => '#fff'],
+    ];
+    return $map[$role] ?? null;
+}
+
+/** v6: 检查用户是否为聊天室管理员(含超管/平台管理) */
+function is_chat_admin($userId)
+{
+    $role = chat_user_role($userId);
+    return in_array($role, ['admin', 'super_admin', 'platform_admin'], true);
+}
+
+/** v6: 检查用户是否为超管(含平台管理) */
+function is_chat_super($userId)
+{
+    $role = chat_user_role($userId);
+    return in_array($role, ['super_admin', 'platform_admin'], true);
+}
+
+/** v6: 更新用户在线状态 (心跳) */
+function chat_update_online($userId, $roomId = 0)
+{
+    $userId = (int)$userId;
+    if (!$userId) return;
+    $roomId = (int)$roomId;
+    $now = date('Y-m-d H:i:s');
+    try {
+        $exist = db()->queryOne(
+            "SELECT id FROM " . db()->table('chat_online') . " WHERE user_id = ? AND room_id = ?",
+            [$userId, $roomId]
+        );
+        if ($exist) {
+            db()->execute(
+                "UPDATE " . db()->table('chat_online') . " SET last_active = ? WHERE user_id = ? AND room_id = ?",
+                [$now, $userId, $roomId]
+            );
+        } else {
+            db()->insert('chat_online', [
+                'user_id' => $userId, 'room_id' => $roomId, 'last_active' => $now,
+            ]);
+        }
+    } catch (Throwable $e) {}
+}
+
+/** v6: 获取聊天室在线用户列表 (30秒内活跃) */
+function chat_online_users($roomId = 0)
+{
+    $list = [];
+    try {
+        $sql = "SELECT o.user_id, o.last_active, u.username, u.avatar, t.level, t.title_text, t.chat_role "
+             . "FROM " . db()->table('chat_online') . " o "
+             . "LEFT JOIN " . db()->table('users') . " u ON u.id = o.user_id "
+             . "LEFT JOIN " . db()->table('user_titles') . " t ON t.user_id = o.user_id "
+             . "WHERE o.last_active >= (NOW() - INTERVAL 30 SECOND)";
+        $params = [];
+        if ($roomId > 0) {
+            $sql .= " AND o.room_id = ?";
+            $params[] = (int)$roomId;
+        }
+        $sql .= " ORDER BY o.last_active DESC LIMIT 200";
+        $list = db()->query($sql, $params);
+    } catch (Throwable $e) {}
+    return $list;
+}
+
+/** v6: 获取聊天室在线人数 */
+function chat_online_count($roomId = 0)
+{
+    try {
+        $sql = "SELECT COUNT(*) FROM " . db()->table('chat_online')
+             . " WHERE last_active >= (NOW() - INTERVAL 30 SECOND)";
+        $params = [];
+        if ($roomId > 0) {
+            $sql .= " AND room_id = ?";
+            $params[] = (int)$roomId;
+        }
+        return (int)db()->queryScalar($sql, $params);
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+/** v6: 获取用户快捷语句 (默认5个, 首次访问自动创建) */
+function chat_quick_phrases($userId)
+{
+    $userId = (int)$userId;
+    if (!$userId) return [];
+    try {
+        $rows = db()->query(
+            "SELECT id, content, sort FROM " . db()->table('chat_quick_phrases')
+            . " WHERE user_id = ? ORDER BY sort ASC, id ASC",
+            [$userId]
+        );
+        if (empty($rows)) {
+            // 首次访问自动创建5个默认快捷语句
+            $defaults = ['你好,很高兴认识你!', '请问有什么可以帮您的吗?', '感谢您的分享!', '好的,马上处理', '再见,祝您生活愉快!'];
+            $sort = 100;
+            foreach ($defaults as $d) {
+                db()->insert('chat_quick_phrases', [
+                    'user_id' => $userId, 'content' => $d, 'sort' => $sort--, 'created_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+            $rows = db()->query(
+                "SELECT id, content, sort FROM " . db()->table('chat_quick_phrases')
+                . " WHERE user_id = ? ORDER BY sort ASC, id ASC",
+                [$userId]
+            );
+        }
+        return $rows;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+/** v6: 获取聊天室版块列表 */
+function chat_rooms_list()
+{
+    try {
+        return db()->query(
+            "SELECT * FROM " . db()->table('chat_rooms') . " WHERE status=1 ORDER BY sort DESC, id ASC"
+        );
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
+/** v6: 获取当前生效的聊天室公告 (未过期) */
+function chat_active_announcements($roomId = 0, $scope = 'global')
+{
+    try {
+        $sql = "SELECT * FROM " . db()->table('chat_announcements')
+             . " WHERE scope = ? AND expire_at > NOW()";
+        $params = [$scope];
+        if ($roomId > 0) {
+            $sql .= " AND (room_id IS NULL OR room_id = 0 OR room_id = ?)";
+            $params[] = (int)$roomId;
+        }
+        $sql .= " ORDER BY id DESC LIMIT 5";
+        return db()->query($sql, $params);
+    } catch (Throwable $e) {
+        return [];
+    }
 }

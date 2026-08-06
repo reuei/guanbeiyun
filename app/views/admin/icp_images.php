@@ -32,7 +32,7 @@ $rows = $rows ?? []; $total = $total ?? 0; $page = $page ?? 1; $size = $size ?? 
 </style>
 <div class="panel">
   <div class="panel-head">
-    <span class="title">ICP 备案号前图片 <span class="tag tag-primary"><?php echo $total; ?></span></span>
+    <span class="title">ICP 备案号前图片 <span class="tag tag-primary"><?php echo $total; ?></span> <span class="text-muted text-sm" style="font-weight:400;">(最多 5 个)</span></span>
     <button class="btn btn-primary btn-sm" onclick="editIcpImage(0)"><svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 新增图片</button>
   </div>
   <div class="table-wrap" style="border:none;">

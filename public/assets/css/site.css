@@ -244,13 +244,21 @@
 /* ---------- Toast 全局提示 ---------- */
 .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; align-items: center; pointer-events: none; }
 .toast {
-  display: flex; align-items: center; gap: 10px; padding: 11px 18px; background: var(--bg-elevated);
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--bg-elevated);
   border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
-  font-size: 14px; min-width: 240px; max-width: 90vw; pointer-events: auto;
+  font-size: 14px; line-height: 1.4; min-width: 200px; max-width: 90vw; pointer-events: auto;
   animation: toastIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: none; /* v6修复: 移除左侧小竖条 */
 }
+.toast::before { display: none !important; } /* v6修复: 移除可能存在的左侧伪元素竖条 */
 .toast.out { animation: toastOut 0.25s ease forwards; }
-.toast .toast-icon { flex-shrink: 0; }
+.toast .toast-icon {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; line-height: 0; border: none; background: none;
+}
+.toast svg.toast-icon { display: block; width: 20px; height: 20px; }
+.toast .toast-icon svg { display: block; width: 20px; height: 20px; }
+.toast > span { flex: 1; min-width: 0; word-break: break-word; }
 .toast-success .toast-icon { color: var(--success); }
 .toast-error .toast-icon { color: var(--danger); }
 .toast-warning .toast-icon { color: var(--warning); }

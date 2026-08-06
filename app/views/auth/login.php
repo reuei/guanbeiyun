@@ -169,21 +169,57 @@ function loadClickText(){
 function renderClickText(data){
   var box = document.getElementById('ckBox'); if(!box) return;
   box.innerHTML = '';
+  var natW = data.width || 320;
+  var natH = data.height || 160;
+  // 容器: position relative, 保持宽高比, 响应式缩放
+  box.style.position = 'relative';
+  box.style.display = 'inline-block';
+  box.style.maxWidth = '100%';
+  box.style.width = natW + 'px';
+  box.style.height = 'auto';
+  box.style.aspectRatio = natW + ' / ' + natH;
+  box.style.borderRadius = '6px';
+  box.style.overflow = 'hidden';
+  box.style.cursor = 'crosshair';
+  box.style.lineHeight = '0';
+  box.style.background = '#f0fdf4';
+  // 背景图
   var img = document.createElement('img');
+  img.id = 'ckBgImg';
+  img.style.cssText = 'display:block;width:100%;height:100%;border-radius:6px;';
   if(data.image){ img.src = data.image; }
-  else { img.style.width='320px'; img.style.height='160px'; img.style.background='#ecfdf5'; }
-  img.style.display='block'; img.style.maxWidth='100%'; img.style.borderRadius='6px';
-  img.id='ckBgImg';
+  else { img.style.background = 'linear-gradient(135deg, #f0fdf4, #ecfdf5)'; }
   box.appendChild(img);
+  // 字符叠加层 (HTML 渲染, 确保中文正确显示)
+  var positions = data.positions || [];
+  var charLayer = document.createElement('div');
+  charLayer.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
+  box.appendChild(charLayer);
+  for (var i = 0; i < positions.length; i++) {
+    var p = positions[i];
+    var span = document.createElement('span');
+    span.textContent = p.char;
+    span.style.cssText = 'position:absolute;' +
+      'left:' + (p.x / natW * 100) + '%;' +
+      'top:' + (p.y / natH * 100) + '%;' +
+      'width:' + ((p.w||34) / natW * 100) + '%;' +
+      'height:' + ((p.h||34) / natH * 100) + '%;' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'font-size:clamp(14px,' + (22 / natW * 100) + 'cqw,24px);' +
+      'font-weight:700;color:' + (p.color || '#333') + ';' +
+      'transform:rotate(' + (p.angle || 0) + 'deg);' +
+      'transform-origin:center center;user-select:none;' +
+      'text-shadow:0 1px 2px rgba(255,255,255,0.7);';
+    charLayer.appendChild(span);
+  }
+  // 启用 container query 让 cqw 单位生效
+  try { box.style.containerType = 'inline-size'; } catch(e) {}
   var targets = data.targets||[];
   var tip = document.getElementById('ckTip');
   if(tip){ tip.style.color=''; tip.innerHTML='请依次点击文字：<b style="color:var(--danger);letter-spacing:4px;">'+(targets.join(' '))+'</b>'; }
   updateClickProgress();
-  img.onload = function(){
-    box.onclick = onCkBoxClick;
-    box.oncontextmenu = function(e){e.preventDefault();};
-  };
-  if(!data.image){ setTimeout(function(){ box.onclick = onCkBoxClick; }, 80); }
+  box.onclick = onCkBoxClick;
+  box.oncontextmenu = function(e){e.preventDefault();};
 }
 function updateClickProgress(){
   var targets = (clickTextData&&clickTextData.targets)?clickTextData.targets:[];
@@ -197,14 +233,11 @@ function onCkBoxClick(e){
   if(!clickTextData||captchaOk) return;
   var box = document.getElementById('ckBox'); if(!box) return;
   var rect = box.getBoundingClientRect();
-  var bgImg = document.getElementById('ckBgImg');
-  var ix = e.clientX - rect.left;
-  var iy = e.clientY - rect.top;
-  if(bgImg && bgImg.naturalWidth){
-    var rx = bgImg.naturalWidth / bgImg.clientWidth;
-    var ry = bgImg.naturalHeight / bgImg.clientHeight;
-    ix = ix * rx; iy = iy * ry;
-  }
+  var natW = clickTextData.width || 320;
+  var natH = clickTextData.height || 160;
+  // 将显示坐标转换为原始坐标
+  var ix = (e.clientX - rect.left) * (natW / Math.max(1, rect.width));
+  var iy = (e.clientY - rect.top) * (natH / Math.max(1, rect.height));
   var positions = clickTextData.positions||[];
   var clickedChar = null;
   for(var i=0;i<positions.length;i++){

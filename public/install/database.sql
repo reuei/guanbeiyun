@@ -505,3 +505,98 @@ CREATE TABLE `gb_icp_images` (
   `created_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='备案号前缀图片';
+
+-- v6: 聊天室版块(区块)表
+DROP TABLE IF EXISTS `gb_chat_rooms`;
+CREATE TABLE `gb_chat_rooms` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL COMMENT '版块名称',
+  `description` varchar(500) DEFAULT NULL COMMENT '版块描述',
+  `icon` varchar(50) DEFAULT NULL COMMENT '版块图标(emoji)',
+  `sort` int(11) DEFAULT 0,
+  `status` tinyint(1) DEFAULT 1 COMMENT '1启用 0禁用',
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室版块';
+
+-- v6: 用户头衔等级表 (后台可修改用户头衔文字、等级、背景色)
+DROP TABLE IF EXISTS `gb_user_titles`;
+CREATE TABLE `gb_user_titles` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `title_text` varchar(50) DEFAULT '' COMMENT '头衔文字',
+  `level` int(11) DEFAULT 1 COMMENT '等级 1-99',
+  `title_bg` varchar(50) DEFAULT '' COMMENT '头衔背景色(自定义, 留空按等级)',
+  `chat_role` varchar(20) DEFAULT 'user' COMMENT 'user/member/admin/super_admin/platform_admin',
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户头衔等级';
+
+-- v6: 聊天室快捷语句表 (用户自定义, 默认5个)
+DROP TABLE IF EXISTS `gb_chat_quick_phrases`;
+CREATE TABLE `gb_chat_quick_phrases` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `content` varchar(200) NOT NULL,
+  `sort` int(11) DEFAULT 0,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室快捷语句';
+
+-- v6: 聊天室公告表 (展示在聊天室最上方, 字数超10字滚动, 10分钟内自动删除)
+DROP TABLE IF EXISTS `gb_chat_announcements`;
+CREATE TABLE `gb_chat_announcements` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `content` varchar(500) NOT NULL COMMENT '公告内容',
+  `scope` varchar(20) DEFAULT 'global' COMMENT 'global全局 popup弹窗',
+  `room_id` int(11) DEFAULT NULL COMMENT '指定版块(留空为全部)',
+  `created_by` int(11) DEFAULT NULL,
+  `expire_at` datetime NOT NULL COMMENT '过期时间(默认10分钟后)',
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_expire` (`expire_at`),
+  KEY `idx_scope` (`scope`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室公告';
+
+-- v6: 聊天室在线用户表 (心跳检测, 30秒未更新视为离线)
+DROP TABLE IF EXISTS `gb_chat_online`;
+CREATE TABLE `gb_chat_online` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `room_id` int(11) DEFAULT 0,
+  `last_active` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_room` (`user_id`, `room_id`),
+  KEY `idx_active` (`last_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室在线用户';
+
+-- v6: 扩展 gb_chat_messages 表 (版块ID, 是否@全体)
+ALTER TABLE `gb_chat_messages` ADD COLUMN `room_id` int(11) DEFAULT 0 COMMENT '版块ID' AFTER `reply_to`;
+ALTER TABLE `gb_chat_messages` ADD COLUMN `is_at_all` tinyint(1) DEFAULT 0 COMMENT '@全体成员' AFTER `room_id`;
+ALTER TABLE `gb_chat_messages` ADD COLUMN `recalled_by` int(11) DEFAULT NULL COMMENT '撤回操作者' AFTER `is_at_all`;
+ALTER TABLE `gb_chat_messages` ADD COLUMN `recalled_at` datetime DEFAULT NULL COMMENT '撤回时间' AFTER `recalled_by`;
+ALTER TABLE `gb_chat_messages` ADD INDEX `idx_room` (`room_id`);
+
+-- v6: 新增聊天室相关配置
+INSERT INTO `gb_config` (`name`, `value`, `remark`, `updated_at`) VALUES
+('chat_global_mute', '0', '聊天室全体禁言(0关闭 1开启)', NOW()),
+('chat_default_room', '0', '默认聊天版块ID(0为综合)', NOW()),
+('chat_admin_path', 'admins', '聊天室管理后台路径', NOW()),
+('footer_code', '<a href=\"https://beian.miit.gov.cn/\" target=\"_blank\" rel=\"noopener\">管ICP备XXXXXXXX号</a>', '备案通过后用户网站底部代码(默认提供)', NOW()),
+('filing_seal_image', '', '备案盖章图片(后台上传, 留空使用默认CSS盖章)', NOW()),
+('filing_audit_team', '管备云备案审核团队', '备案审核团队名称', NOW()),
+('filing_info_url', '', '备案信息独立页面URL前缀(留空使用站内 /filing/info/)', NOW()) ON DUPLICATE KEY UPDATE `updated_at` = NOW();
+
+-- v6: 默认聊天版块数据
+INSERT INTO `gb_chat_rooms` (`name`, `description`, `icon`, `sort`, `status`, `created_at`) VALUES
+('综合聊天', '自由交流各类话题', '💬', 100, 1, NOW()),
+('技术交流', '技术讨论与分享', '💻', 90, 1, NOW()),
+('备案咨询', 'ICP备案相关问题咨询', '📋', 80, 1, NOW()),
+('休闲水区', '轻松闲聊, 结交朋友', '☕', 70, 1, NOW());
+
+-- v6: 默认快捷语句数据 (新用户首次进入聊天室时自动创建)
+-- 注意: 此处不直接插入, 由应用层在用户首次访问时自动生成5个默认语句

@@ -32,9 +32,51 @@ $router->get('/publicity/filing', 'PublicityController@filing');
 $router->get('/publicity/invalid', 'PublicityController@invalid');
 // 聊天室
 $router->get('/chat', 'ChatController@index');
+$router->get('/chat/rooms', 'ChatController@rooms');
+$router->get('/chat/online', 'ChatController@online');
 $router->post('/chat/messages', 'ChatController@messages');
 $router->post('/chat/send', 'ChatController@send');
 $router->post('/chat/history', 'ChatController@history');
+$router->post('/chat/recall', 'ChatController@recall');
+$router->post('/chat/heartbeat', 'ChatController@heartbeat');
+$router->get('/chat/online/count', 'ChatController@onlineCount');
+$router->post('/chat/online/list', 'ChatController@onlineList');
+$router->get('/chat/announcements', 'ChatController@announcements');
+$router->get('/chat/quick_phrases', 'ChatController@quickPhrases');
+$router->post('/chat/quick_phrase/save', 'ChatController@saveQuickPhrase');
+$router->post('/chat/quick_phrase/delete', 'ChatController@deleteQuickPhrase');
+
+// ====== 聊天室管理后台 (路径 /admins) ======
+$router->get('/admins', 'ChatAdminController@index');
+$router->get('/admins/login', 'ChatAdminController@login');
+$router->post('/admins/doLogin', 'ChatAdminController@doLogin');
+$router->get('/admins/logout', 'ChatAdminController@logout');
+$router->get('/admins/dashboard', 'ChatAdminController@dashboard');
+// 版块管理
+$router->get('/admins/rooms', 'ChatAdminController@rooms');
+$router->post('/admins/room/save', 'ChatAdminController@saveRoom');
+$router->post('/admins/room/delete', 'ChatAdminController@deleteRoom');
+// 公告管理
+$router->get('/admins/announcements', 'ChatAdminController@announcements');
+$router->post('/admins/announcement/save', 'ChatAdminController@saveAnnouncement');
+$router->post('/admins/announcement/delete', 'ChatAdminController@deleteAnnouncement');
+// 禁言管理
+$router->get('/admins/banned', 'ChatAdminController@banned');
+$router->post('/admins/ban', 'ChatAdminController@banUser');
+$router->post('/admins/unban', 'ChatAdminController@unbanUser');
+// 用户头衔管理
+$router->get('/admins/titles', 'ChatAdminController@titles');
+$router->post('/admins/title/save', 'ChatAdminController@saveTitle');
+$router->post('/admins/role/set', 'ChatAdminController@setRole');
+// 消息管理 (撤回)
+$router->get('/admins/messages', 'ChatAdminController@messages');
+$router->post('/admins/message/recall', 'ChatAdminController@recallMessage');
+$router->post('/admins/message/delete', 'ChatAdminController@deleteMessage');
+// 全局禁言 / 封禁用户 (超管)
+$router->post('/admins/toggleGlobalMute', 'ChatAdminController@toggleGlobalMute');
+$router->post('/admins/account/ban', 'ChatAdminController@banAccount');
+// 在线用户
+$router->get('/admins/online', 'ChatAdminController@online');
 // 个人中心 (公开)
 $router->get('/u/{id}', 'UserController@profileView');
 // 备案详情页

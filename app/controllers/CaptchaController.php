@@ -102,7 +102,7 @@ class CaptchaController extends Controller
     public function clickText()
     {
         $targetCount = max(2, min(5, (int)site_config('captcha_click_count', 3)));
-        $charset = ['的','一','是','在','不','了','有','和','人','这','中','大','为','上','个','国','我','以','要','他','时','来','用','们','生','到','作','地','于','出','就','分','对','成','会','可','主','发','年','动','同','工','也','能','下','过','子','说','产','种','面','而','方','后','多','定','行','学','法','所','民','得','经','十','三','之','进','着','等','部','度','家','电','力','里','如','水','化','高','自','二','理','起','小','物','现','实','加','量','都','两','体','制','机','当','使','点','从','业','本','去','把','性','好','应','开','它','合','还','因','由','其','些','然','前','外','天','政','四','日','那','社','义','事','平','形','相','全','反','此','意','料','将','她','矛','究','此','较','论','或','质','气','第','向','道','命','此','变','条','只','没','结','解','问','意','建','月','公','无','系','军','很','情','最','何','理','眼','志','设','论','运','及','则','或','圆','解','统','飞'];
+        $charset = ['管','备','云','系','统','的','一','是','在','不','了','有','和','人','这','中','大','为','上','个','国','我','以','要','他','时','来','用','们','生','到','作','地','于','出','就','分','对','成','会','可','主','发','年','动','同','工','也','能','下','过','子','说','产','种','面','而','方','后','多','定','行','学','法','所','民','得','经','十','三','之','进','着','等','部','度','家','电','力','里','如','水','化','高','自','二','理','起','小','物','现','实','加','量','都','两','体','制','机','当','使','点','从','业','本','去','把','性','好','应','开','它','合','还','因','由','其','些','然','前','外','天','政','四','日','那','社','义','事','平','形','相','全','反','此','意','料','将','她','较','论','或','质','气','第','向','道','命','变','条','只','没','结','解','问','建','月','公','无','系','军','很','情','最','何','眼','志','设','运','及','则','圆','统','飞'];
         shuffle($charset);
         $totalCount = 8;
         $displayChars = array_slice($charset, 0, $totalCount);
@@ -114,49 +114,19 @@ class CaptchaController extends Controller
         $_SESSION['gb_captcha_click_token'] = $token = random_str(16);
         $_SESSION['gb_captcha_click_count'] = 0;
 
-        if (!$this->gdAvailable()) {
-            ok([
-                'image' => '',
-                'characters' => $displayChars,
-                'targets' => $targets,
-                'positions' => [],
-                'token' => $token,
-                'degraded' => true,
-            ], 'GD不可用');
-        }
-
+        // 计算字符位置 (用于前端 HTML 渲染, 不再依赖 GD 渲染中文)
         $w = 320;
         $h = 160;
-        $img = @imagecreatetruecolor($w, $h);
-        if (!$img) {
-            ok([
-                'image' => '',
-                'characters' => $displayChars,
-                'targets' => $targets,
-                'positions' => [],
-                'token' => $token,
-                'degraded' => true,
-            ], 'GD不可用');
-        }
-
-        $bg = imagecolorallocate($img, mt_rand(240, 255), mt_rand(240, 255), mt_rand(235, 250));
-        imagefill($img, 0, 0, $bg);
-
-        for ($i = 0; $i < 8; $i++) {
-            $lc = imagecolorallocate($img, mt_rand(200, 240), mt_rand(200, 240), mt_rand(200, 240));
-            imageline($img, mt_rand(0, $w), mt_rand(0, $h), mt_rand(0, $w), mt_rand(0, $h), $lc);
-        }
-
         $positions = [];
         $used = [];
-        $charW = 32;
-        $charH = 32;
+        $charW = 34;
+        $charH = 34;
         for ($i = 0; $i < $totalCount; $i++) {
             $ch = $displayChars[$i];
             $tries = 0;
             do {
-                $x = mt_rand(10, $w - $charW - 10);
-                $y = mt_rand(10, $h - $charH - 10);
+                $x = mt_rand(8, $w - $charW - 8);
+                $y = mt_rand(8, $h - $charH - 8);
                 $ok = true;
                 foreach ($used as $u) {
                     if (abs($u['x'] - $x) < $charW && abs($u['y'] - $y) < $charH) {
@@ -167,17 +137,14 @@ class CaptchaController extends Controller
                 $tries++;
             } while (!$ok && $tries < 30);
             $used[] = ['x' => $x, 'y' => $y];
-            $angle = mt_rand(-30, 30);
+            $angle = mt_rand(-25, 25);
             $isTarget = in_array($ch, $targets, true);
-            $colorR = mt_rand(30, 100);
-            $colorG = mt_rand(30, 100);
-            $colorB = mt_rand(80, 160);
+            // 为目标字符和干扰字符分配不同颜色 (前端使用)
             if ($isTarget) {
-                $colorR = mt_rand(160, 220);
-                $colorG = mt_rand(30, 80);
-                $colorB = mt_rand(30, 80);
+                $color = sprintf('#%02x%02x%02x', mt_rand(180, 220), mt_rand(30, 80), mt_rand(30, 80));
+            } else {
+                $color = sprintf('#%02x%02x%02x', mt_rand(30, 100), mt_rand(30, 100), mt_rand(80, 160));
             }
-            $textColor = imagecolorallocate($img, $colorR, $colorG, $colorB);
             $positions[] = [
                 'char' => $ch,
                 'x' => $x,
@@ -185,27 +152,58 @@ class CaptchaController extends Controller
                 'w' => $charW,
                 'h' => $charH,
                 'angle' => $angle,
+                'color' => $color,
+                'is_target' => $isTarget,
             ];
-            $fontSize = 20;
-            if (function_exists('imagettftext')) {
-                @imagettftext($img, $fontSize, $angle, $x + 4, $y + 24, $textColor, '', $ch);
-            } else {
-                imagestring($img, 5, $x + 4, $y + 8, $ch, $textColor);
+        }
+
+        // 生成背景图片 (仅渐变 + 干扰线 + 噪点, 不渲染中文字符)
+        $bgImage = '';
+        if ($this->gdAvailable()) {
+            $img = @imagecreatetruecolor($w, $h);
+            if ($img) {
+                // 渐变背景
+                $c1 = imagecolorallocate($img, mt_rand(230, 250), mt_rand(240, 255), mt_rand(235, 255));
+                $c2 = imagecolorallocate($img, mt_rand(220, 245), mt_rand(235, 250), mt_rand(230, 250));
+                for ($yy = 0; $yy < $h; $yy++) {
+                    $r = (int)($c1 >> 16 & 0xFF) + ((($c2 >> 16 & 0xFF) - ($c1 >> 16 & 0xFF)) * $yy / $h);
+                    $g = (int)($c1 >> 8 & 0xFF) + ((($c2 >> 8 & 0xFF) - ($c1 >> 8 & 0xFF)) * $yy / $h);
+                    $b = (int)($c1 & 0xFF) + ((($c2 & 0xFF) - ($c1 & 0xFF)) * $yy / $h);
+                    $col = imagecolorallocate($img, min(255, $r), min(255, $g), min(255, $b));
+                    imageline($img, 0, $yy, $w, $yy, $col);
+                }
+                // 干扰线
+                for ($i = 0; $i < 10; $i++) {
+                    $lc = imagecolorallocate($img, mt_rand(200, 240), mt_rand(200, 240), mt_rand(200, 240));
+                    imageline($img, mt_rand(0, $w), mt_rand(0, $h), mt_rand(0, $w), mt_rand(0, $h), $lc);
+                }
+                // 噪点
+                for ($i = 0; $i < 80; $i++) {
+                    $pc = imagecolorallocate($img, mt_rand(180, 240), mt_rand(180, 240), mt_rand(180, 240));
+                    imagesetpixel($img, mt_rand(0, $w), mt_rand(0, $h), $pc);
+                }
+                // 干扰圆
+                for ($i = 0; $i < 5; $i++) {
+                    $cc = imagecolorallocatealpha($img, mt_rand(150, 210), mt_rand(150, 210), mt_rand(180, 220), 60);
+                    imageellipse($img, mt_rand(0, $w), mt_rand(0, $h), mt_rand(20, 60), mt_rand(20, 60), $cc);
+                }
+                ob_start();
+                @imagepng($img);
+                $imgData = ob_get_clean();
+                imagedestroy($img);
+                $bgImage = 'data:image/png;base64,' . base64_encode($imgData);
             }
         }
 
-        ob_start();
-        @imagepng($img);
-        $imgData = ob_get_clean();
-        imagedestroy($img);
-        $dataUrl = 'data:image/png;base64,' . base64_encode($imgData);
-
         ok([
-            'image' => $dataUrl,
+            'image' => $bgImage,
             'characters' => $displayChars,
             'targets' => $targets,
             'positions' => $positions,
             'token' => $token,
+            'width' => $w,
+            'height' => $h,
+            'render_mode' => 'html', // 前端使用 HTML 渲染字符
         ]);
     }
 
@@ -378,45 +376,30 @@ class CaptchaController extends Controller
 
     private function drawPiece($img, $x, $y, $size, $color, $fill = true, $border = 0)
     {
-        $r = (int)($size * 0.2);
-        $cx = $x + (int)($size / 2);
-        $cy = $y + (int)($size / 2);
-        $half = (int)($size / 2);
+        $r = (int)($size * 0.22);
+        if ($r < 2) $r = 2;
 
         if ($fill) {
-            $points = [];
-            for ($a = 0; $a < 360; $a += 5) {
-                $rad = deg2rad($a);
-                $px = $cx + $half * cos($rad);
-                $py = $cy + $half * sin($rad);
-                if ($a >= 315 || $a <= 45) {
-                    $nX = $cx + ($half - $r) + $r * cos(deg2rad(180 + ($a - 0) * 4));
-                    $nY = $cy - $half - $r + $r * sin(deg2rad(180 + ($a - 0) * 4));
-                    if ($a < 90) { $px = $nX; $py = $cy - $half + $r + ($size * 0.1) * sin(deg2rad($a * 4)); }
-                }
-                $points[] = (int)$px;
-                $points[] = (int)$py;
-            }
-            $simplePoints = [
-                $x, $y + $r,
-                $x + $r, $y + $r,
+            // 圆角矩形拼块 (简洁可靠, 避免复杂拼图导致的合并错位)
+            $points = [
                 $x + $r, $y,
                 $x + $size - $r, $y,
-                $x + $size - $r, $y + $r,
                 $x + $size, $y + $r,
                 $x + $size, $y + $size - $r,
-                $x + $size - $r, $y + $size - $r,
                 $x + $size - $r, $y + $size,
                 $x + $r, $y + $size,
-                $x + $r, $y + $size - $r,
                 $x, $y + $size - $r,
+                $x, $y + $r,
             ];
-            imagefilledpolygon($img, $simplePoints, 12, $color);
-            imagefilledellipse($img, $x + (int)($size / 2), $y, (int)($size * 0.45), (int)($size * 0.45), $color);
+            imagefilledpolygon($img, $points, 8, $color);
+            // 四角填充圆弧, 让圆角更平滑
+            imagefilledellipse($img, $x + $r, $y + $r, $r * 2, $r * 2, $color);
+            imagefilledellipse($img, $x + $size - $r, $y + $r, $r * 2, $r * 2, $color);
+            imagefilledellipse($img, $x + $r, $y + $size - $r, $r * 2, $r * 2, $color);
+            imagefilledellipse($img, $x + $size - $r, $y + $size - $r, $r * 2, $r * 2, $color);
         } else {
             imagesetthickness($img, max(1, $border));
-            imagerectangle($img, $x + 1, $y + (int)($size * 0.18), $x + $size - 1, $y + $size - 1, $color);
-            imageellipse($img, $x + (int)($size / 2), $y + (int)($size * 0.18), (int)($size * 0.55), (int)($size * 0.55), $color);
+            imagerectangle($img, $x + 1, $y + 1, $x + $size - 1, $y + $size - 1, $color);
         }
     }
 
@@ -438,7 +421,11 @@ class CaptchaController extends Controller
             ok([], '验证成功');
         }
 
-        $tolerance = 5;
+        // 根据难度调整容差: easy=12, medium=10, hard=8
+        $difficulty = site_config('captcha_difficulty', 'medium');
+        $tolMap = ['easy' => 12, 'medium' => 10, 'hard' => 8];
+        $tolerance = $tolMap[$difficulty] ?? 10;
+
         if ($userX >= 0 && abs($userX - $targetX) <= $tolerance) {
             unset($_SESSION['gb_captcha_drag_target_x'], $_SESSION['gb_captcha_drag_token'], $_SESSION['gb_captcha_drag_size'], $_SESSION['gb_captcha_drag_y']);
             $this->setVerified();

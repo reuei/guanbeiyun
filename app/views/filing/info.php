@@ -2,6 +2,8 @@
 $filing = $filing ?? [];
 $prefixImage = $prefixImage ?? null;
 $certifications = $certifications ?? [];
+$footerCode = $footerCode ?? '';
+$sealImage = $sealImage ?? '';
 $f = $filing;
 $status = (int)($f['status'] ?? 0);
 $statusMap = [
@@ -16,7 +18,9 @@ $ownerType = $ownerTypeMap[(int)($f['owner_type'] ?? 0)] ?? '未知';
 $infoUrlBase = site_config('filing_info_url', '');
 $icpNo = $f['icp_no'] ?? '';
 $pureNo = preg_replace('/[^\d]/', '', $icpNo);
-$filingLink = $infoUrlBase ? rtrim($infoUrlBase, '/') . '/' . urlencode($pureNo) : site_url('filing/info/' . urlencode($icpNo));
+$filingLink = $infoUrlBase ? rtrim($infoUrlBase, '/') . '/' . urlencode($pureNo) : site_url('filing/info/' . urlencode($pureNo ?: $icpNo));
+$auditTeam = site_config('filing_audit_team', '管备云备案审核团队');
+$filingNo = $f['filing_no'] ?? ('GBF-' . date('Y', strtotime($f['created_at'] ?? 'now')) . '-' . str_pad($pureNo, 6, '0', STR_PAD_LEFT));
 ?>
 <style>
 .filing-title-gradient {
@@ -236,16 +240,25 @@ $filingLink = $infoUrlBase ? rtrim($infoUrlBase, '/') . '/' . urlencode($pureNo)
     </div>
 
     <div class="info-card">
+      <?php if (!empty($sealImage)): ?>
+      <!-- 后台上传的盖章图片 -->
+      <div class="seal-stamp" style="background:none;border:none;opacity:1;">
+        <img src="<?php echo asset($sealImage); ?>" alt="备案专用章" style="width:180px;height:180px;object-fit:contain;transform:rotate(-15deg);opacity:0.85;">
+      </div>
+      <?php else: ?>
+      <!-- 默认盖章 (CSS 绘制) -->
       <div class="seal-stamp">
         <div class="seal-stamp-inner">
           <span class="seal-star">★</span>
           管备云<br>备案专用章
         </div>
       </div>
+      <?php endif; ?>
 
       <h2 class="section-title">备案信息</h2>
       <div class="grid-2">
         <div class="info-row"><div class="info-label">备案号</div><div class="info-value"><a href="<?php echo e($filingLink); ?>" target="_blank" rel="noopener" style="color:var(--primary);text-decoration:none;"><?php echo e($icpNo); ?></a></div></div>
+        <div class="info-row"><div class="info-label">备案编号</div><div class="info-value"><?php echo e($filingNo); ?></div></div>
         <div class="info-row"><div class="info-label">主办单位名称</div><div class="info-value"><?php echo e($f['owner_name'] ?? '-'); ?></div></div>
         <div class="info-row"><div class="info-label">主办单位类型</div><div class="info-value"><?php echo e($ownerType); ?></div></div>
         <div class="info-row"><div class="info-label">主体编号</div><div class="info-value"><?php echo e($f['owner_no'] ?? '-'); ?></div></div>
@@ -262,9 +275,19 @@ $filingLink = $infoUrlBase ? rtrim($infoUrlBase, '/') . '/' . urlencode($pureNo)
         <div class="info-row"><div class="info-label">服务器IP</div><div class="info-value"><?php echo e($f['server_ip'] ?? '-'); ?></div></div>
         <div class="info-row"><div class="info-label">内容类型</div><div class="info-value"><?php echo e($f['content_type'] ?? '综合门户'); ?></div></div>
         <div class="info-row"><div class="info-label">备案状态</div><div class="info-value"><span class="status-badge <?php echo $statusInfo['class']; ?>"><?php echo $statusInfo['text']; ?></span></div></div>
-        <div class="info-row"><div class="info-label">审核时间</div><div class="info-value"><?php echo e($f['audited_at'] ?? ($f['updated_at'] ?? '-')); ?></div></div>
+        <div class="info-row"><div class="info-label">备案用户</div><div class="info-value"><?php echo e($f['username'] ?? '-'); ?></div></div>
+        <div class="info-row"><div class="info-label">审核日期</div><div class="info-value"><?php echo e($f['audited_at'] ?? ($f['updated_at'] ?? '-')); ?></div></div>
+        <div class="info-row"><div class="info-label">审核团队</div><div class="info-value"><?php echo e($auditTeam); ?></div></div>
         <div class="info-row" style="grid-column: 1 / -1;"><div class="info-label">审核意见</div><div class="info-value"><?php echo e($f['audit_remark'] ?? ($f['remark'] ?? '无')); ?></div></div>
       </div>
+
+      <?php if (!empty($footerCode)): ?>
+      <h2 class="section-title" style="margin-top:28px;">底部代码</h2>
+      <div style="background:var(--bg-soft,#f9fafb);border:1px solid var(--border,#e5e7eb);border-radius:8px;padding:16px;">
+        <div style="font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;color:var(--text-2,#4b5563);"><?php echo e($footerCode); ?></div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-muted,#9ca3af);">注: 此代码由备案用户在网站底部添加, 用于备案标识展示。</div>
+      <?php endif; ?>
 
       <?php if ($certifications): ?>
       <h2 class="section-title" style="margin-top:28px;">认证信息</h2>

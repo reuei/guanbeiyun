@@ -587,10 +587,14 @@ class AdminController extends Controller
 
     public function saveSiteConfig()
     {
-        $fields = ['site_name','site_title','site_keywords','site_description','footer_intro','icp_info','copyright','tech_support','tech_support_url','theme_color','qq_image','wechat_image','kuaishou_image','site_logo','site_favicon','site_thumbnail','captcha_image','site_url','filing_info_url','captcha_type','geetest_id','geetest_key','rainbow_api_url','rainbow_app_id','rainbow_app_key','rainbow_callback','rainbow_methods'];
-        foreach ($fields as $f) {
-            $v = input($f, '');
-            $this->setConfig($f, $v);
+        // v6修复: 只更新表单中实际提交的字段, 避免未在表单中的字段(如captcha_type, site_url等)被空字符串覆盖
+        $allowedFields = ['site_name','site_title','site_keywords','site_description','footer_intro','icp_info','copyright','tech_support','tech_support_url','theme_color','qq_image','wechat_image','kuaishou_image','site_logo','site_favicon','site_thumbnail','captcha_image','site_url','filing_info_url','captcha_type','geetest_id','geetest_key','rainbow_api_url','rainbow_app_id','rainbow_app_key','rainbow_callback','rainbow_methods','footer_code','filing_seal_image','filing_audit_team'];
+        $postData = input();
+        foreach ($allowedFields as $f) {
+            // 只更新实际提交的字段, 未提交的字段保持原值
+            if (array_key_exists($f, $postData)) {
+                $this->setConfig($f, $postData[$f]);
+            }
         }
         log_action('operation', '更新网站配置', admin_user()['id'], 'admin');
         ok([], '保存成功');
@@ -734,6 +738,11 @@ class AdminController extends Controller
         ];
         if (!$data['name']) fail('请输入图片名称');
         if (!$data['image']) fail('请上传图片');
+        // v6: 限制最多5个备案号前缀图标
+        if (!$id) {
+            $count = (int)db()->queryScalar("SELECT COUNT(*) FROM " . db()->table('icp_images'));
+            if ($count >= 5) fail('最多只能添加 5 个备案号前缀图标');
+        }
 
         $imagePath = $data['image'];
         $fullPath = '';

@@ -66,13 +66,15 @@ class FilingController extends Controller
             return;
         }
 
+        // 修复404: 同时按纯数字和完整备案号查询
+        $pureNo = preg_replace('/[^\d]/', '', $icp_no);
         try {
             $filing = db()->queryOne(
                 "SELECT f.*, u.username, u.email, u.phone, u.avatar, u.certifications as user_certifications
                  FROM " . db()->table('filings') . " f
                  LEFT JOIN " . db()->table('users') . " u ON u.id = f.user_id
-                 WHERE f.icp_no = ? LIMIT 1",
-                [$icp_no]
+                 WHERE f.icp_no = ? OR f.icp_no = ? OR f.icp_no LIKE ? LIMIT 1",
+                [$icp_no, '管ICP备' . $pureNo . '号', '%' . $pureNo . '%']
             );
         } catch (Throwable $e) {
             $filing = null;
@@ -95,12 +97,18 @@ class FilingController extends Controller
             $certifications = user_certifications($filing['user_id']);
         }
 
+        // v6: 获取底部代码和盖章
+        $footerCode = site_config('footer_code', '');
+        $sealImage = site_config('filing_seal_image', '');
+
         $this->view('filing/info', [
             'pageTitle' => '管ICP备案信息公示 - ' . $icp_no,
             'active' => 'query',
             'filing' => $filing,
             'prefixImage' => $prefixImage,
             'certifications' => $certifications,
+            'footerCode' => $footerCode,
+            'sealImage' => $sealImage,
         ]);
     }
 
