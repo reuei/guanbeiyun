@@ -123,10 +123,21 @@ function site_url($path = '')
     return rtrim($base, '/') . '/' . ltrim($path, '/');
 }
 
-/** 静态资源URL */
+/** 静态资源URL (对 js/css 自动加文件 mtime 版本号, 防浏览器缓存) */
 function asset($path)
 {
-    return site_url(ltrim($path, '/'));
+    $url = site_url(ltrim($path, '/'));
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (in_array($ext, ['js', 'css'], true)) {
+        $fullPath = GB_ROOT . '/public/' . ltrim($path, '/');
+        if (!is_file($fullPath)) {
+            $fullPath = __DIR__ . '/../public/' . ltrim($path, '/');
+        }
+        if (is_file($fullPath)) {
+            $url .= (strpos($url, '?') !== false ? '&' : '?') . 'v=' . filemtime($fullPath);
+        }
+    }
+    return $url;
 }
 
 /** 转义输出 */
@@ -223,10 +234,18 @@ function input($key = null, $default = null)
     return $input[$key] ?? $default;
 }
 
-/** 计算当前请求的相对路径 (去除子目录前缀, 用于路由匹配/鉴权判断) */
+/** 计算当前请求的相对路径 (去除子目录前缀, 用于路由匹配/鉴权判断)
+ *  注意: 不能用 parse_url 解析 REQUEST_URI, 因为 URL 以 // 开头时(如 site_url() 末尾斜杠 + 前端 /path 拼接)
+ *  parse_url 会把 //path 当作协议相对 URL, 把 path 误解析为 host, 导致路由匹配失败返回 404。
+ */
 function request_path()
 {
-    $uri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    $uri = $_SERVER['REQUEST_URI'] ?? '/';
+    // 直接字符串截取 query string, 不依赖 parse_url
+    $qpos = strpos($uri, '?');
+    if ($qpos !== false) $uri = substr($uri, 0, $qpos);
+    $hpos = strpos($uri, '#');
+    if ($hpos !== false) $uri = substr($uri, 0, $hpos);
     $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
     if ($scriptDir !== '' && $scriptDir !== '/' && strpos($uri, $scriptDir) === 0) {
         $uri = substr($uri, strlen($scriptDir));

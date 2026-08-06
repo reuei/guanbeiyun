@@ -21,6 +21,6 @@ try { $siteName = site_config('site_name') ?: '管备云备案系统'; } catch (
     <a class="btn" href="javascript:location.reload()">刷新重试</a>
   </div>
 </div>
-<script src="<?php echo site_url('public/assets/js/app.js'); ?>"></script>
+<script src="<?php echo asset('assets/js/app.js'); ?>"></script>
 </body>
 </html>

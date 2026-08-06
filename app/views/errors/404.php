@@ -243,6 +243,6 @@ try { $siteName = site_config('site_name') ?: '管备云备案系统'; } catch (
     </div>
   </div>
 </div>
-<script src="<?php echo site_url('public/assets/js/app.js'); ?>"></script>
+<script src="<?php echo asset('assets/js/app.js'); ?>"></script>
 </body>
 </html>
